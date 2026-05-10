@@ -59,6 +59,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 18),
 
+          if (summary != null) ...[
+            StaggeredFadeIn(
+              delay: const Duration(milliseconds: 120),
+              child: _InsightBoard(ctrl: ctrl, summary: summary),
+            ),
+            const SizedBox(height: 16),
+          ],
+
           // ─── Overall assessment ───────────────────────────────────────────
           if (summary != null) ...[
             StaggeredFadeIn(
@@ -226,49 +234,258 @@ class _MetricRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final total = ctrl.productCounts['total'] ?? ctrl.products.length;
-    final toReduce = summary?.productsToReduce ?? 0;
-    final toAvoid = summary?.productsToAvoid ?? 0;
-    final safe = summary?.productsSafe ?? 0;
+    final totalProducts = ctrl.productCounts['total'] ?? ctrl.products.length;
+    final safeProducts = summary?.productsSafe ?? 0;
+    final avoidProducts = summary?.productsToAvoid ?? 0;
+    final reduceProducts = summary?.productsToReduce ?? 0;
+    final analyzedProducts = summary?.productCount ?? totalProducts;
+    final highChemicals = summary == null
+        ? 0
+        : summary!.criticalChemicals.length + summary!.highChemicals.length;
+    final totalChemicals = ctrl.products.fold<int>(0, (acc, item) => acc + item.ingredients.length);
+    final organOverlap = summary?.organsUnderPressure.length ?? 0;
+    final investigateCount = summary?.unverifiedChemicals.length ?? 0;
+    final riskyProducts = (avoidProducts + reduceProducts).clamp(0, 9999);
+    final ratioText = riskyProducts == 0
+        ? 'Balanced'
+        : '$safeProducts:$riskyProducts';
 
-    return Row(
-      children: [
-        Expanded(
-          child: _AnimatedMetricCard(
-            label: 'Produits',
-            value: total,
-            icon: Icons.inventory_2_outlined,
-            tint: AppColors.softBlue,
+    final metrics = [
+      ('Analyzed products', analyzedProducts, Icons.inventory_2_outlined, AppColors.softBlue),
+      ('Total chemicals', totalChemicals, Icons.science_outlined, const Color(0xFFD4F5E2)),
+      ('High-risk chemicals', highChemicals, Icons.warning_amber_rounded, const Color(0xFFFFD8E0)),
+      ('Investigation items', investigateCount, Icons.travel_explore_outlined, const Color(0xFFFFE7D6)),
+      ('Organ overlap', organOverlap, Icons.monitor_heart_outlined, const Color(0xFFE5EDFC)),
+      ('Most affected organs', organOverlap, Icons.air_outlined, const Color(0xFFECE1FF)),
+      ('Safe vs risky', riskyProducts, Icons.balance_outlined, const Color(0xFFDDF4EA)),
+      ('Risk score', summary?.healthScore ?? 50, Icons.ssid_chart_rounded, const Color(0xFFFFE9D8)),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 900;
+        final cardWidth = wide
+            ? (constraints.maxWidth - 30) / 4
+            : (constraints.maxWidth - 10) / 2;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: metrics
+                  .map(
+                    (metric) => SizedBox(
+                      width: cardWidth,
+                      child: _AnimatedMetricCard(
+                        label: metric.$1,
+                        value: metric.$2,
+                        icon: metric.$3,
+                        tint: metric.$4,
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Safe vs risky ratio: $ratioText',
+              style: const TextStyle(color: AppColors.muted, fontSize: 12),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _InsightBoard extends StatelessWidget {
+  const _InsightBoard({required this.ctrl, required this.summary});
+
+  final AppController ctrl;
+  final CumulativeSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = (summary.productCount).clamp(1, 9999);
+    final safe = summary.productsSafe.clamp(0, total);
+    final avoid = summary.productsToAvoid.clamp(0, total);
+    final reduce = summary.productsToReduce.clamp(0, total);
+    final risky = (avoid + reduce).clamp(0, total);
+    final organList = summary.organsUnderPressure.take(5).toList();
+    final warnings = summary.keyWarnings.take(3).toList();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 900;
+        final riskCard = _ChartCard(
+          title: 'Risk distribution',
+          subtitle: 'Safe, reduce, and avoid signals from the AI reports.',
+          child: Column(
+            children: [
+              _BarLine(label: 'Safe products', value: safe / total, color: AppColors.success),
+              _BarLine(label: 'Reduce products', value: reduce / total, color: AppColors.warning),
+              _BarLine(label: 'Avoid products', value: avoid / total, color: AppColors.danger),
+              _BarLine(label: 'Risky share', value: risky / total, color: const Color(0xFFE36C58)),
+            ],
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _AnimatedMetricCard(
-            label: 'Sûrs',
-            value: safe,
-            icon: Icons.check_circle_outline,
-            tint: const Color(0xFFD4F5E2),
+        );
+
+        final organCard = _ChartCard(
+          title: 'Organ impact',
+          subtitle: 'Organs receiving the most pressure from the analyses.',
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: organList.isEmpty
+                ? [
+                    const _TrendPill(label: 'No organ data yet', tint: AppColors.muted),
+                  ]
+                : organList.map((organ) => _TrendPill(label: organ, tint: AppColors.danger)).toList(),
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _AnimatedMetricCard(
-            label: 'À éviter',
-            value: toAvoid,
-            icon: Icons.block_outlined,
-            tint: const Color(0xFFFFD8E0),
+        );
+
+        final trendCard = _ChartCard(
+          title: 'AI trend insights',
+          subtitle: 'What the cumulative report is emphasizing right now.',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: warnings.isEmpty
+                ? const [
+                    Text(
+                      'No trend signal is available yet.',
+                      style: TextStyle(color: AppColors.muted, height: 1.45),
+                    ),
+                  ]
+                : warnings
+                    .map(
+                      (warning) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          '• $warning',
+                          style: const TextStyle(height: 1.45),
+                        ),
+                      ),
+                    )
+                    .toList(),
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _AnimatedMetricCard(
-            label: 'À réduire',
-            value: toReduce,
-            icon: Icons.trending_down_rounded,
-            tint: const Color(0xFFFFE7D6),
+        );
+
+        if (!wide) {
+          return Column(
+            children: [
+              riskCard,
+              const SizedBox(height: 16),
+              organCard,
+              const SizedBox(height: 16),
+              trendCard,
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: riskCard),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                children: [
+                  organCard,
+                  const SizedBox(height: 16),
+                  trendCard,
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ChartCard extends StatelessWidget {
+  const _ChartCard({required this.title, required this.subtitle, required this.child});
+
+  final String title;
+  final String subtitle;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionTitle(title: title, subtitle: subtitle),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _BarLine extends StatelessWidget {
+  const _BarLine({required this.label, required this.value, required this.color});
+
+  final String label;
+  final double value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text('${(value * 100).toStringAsFixed(0)}%', style: const TextStyle(color: AppColors.muted)),
+            ],
           ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: value.clamp(0, 1),
+              minHeight: 10,
+              backgroundColor: color.withValues(alpha: 0.12),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TrendPill extends StatelessWidget {
+  const _TrendPill({required this.label, required this.tint});
+
+  final String label;
+  final Color tint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: tint,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
         ),
-      ],
+      ),
     );
   }
 }

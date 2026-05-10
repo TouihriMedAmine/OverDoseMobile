@@ -6,6 +6,7 @@ import '../app_controller.dart';
 import '../models.dart';
 import '../ui/animated_widgets.dart';
 import '../ui/ui_kit.dart';
+import 'product_card_widgets.dart';
 
 Future<void> showScanResultSheet(
   BuildContext context, {
@@ -73,7 +74,7 @@ class _ScanResultSheet extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
           child: SectionTitle(
-            title: 'Resultat du scan',
+            title: 'AI safety report',
             subtitle: '${results.length} produit(s) analyse(s)',
             trailing: embedded
                 ? IconButton(
@@ -153,6 +154,10 @@ class _ResultCard extends StatelessWidget {
     final productName =
         result['name']?.toString() ?? result['product_name']?.toString() ?? 'Produit analyse';
     final brand = result['brand']?.toString() ?? '';
+    final imageUrl = result['source_image_path']?.toString();
+    final analysis = result['analysis'] is Map
+        ? Map<String, dynamic>.from(result['analysis'] as Map)
+        : const <String, dynamic>{};
     final ingredients = (result['ingredients'] as List<dynamic>? ?? const [])
         .map((e) => e.toString())
         .toList();
@@ -166,9 +171,28 @@ class _ResultCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (imageUrl != null && imageUrl.trim().isNotEmpty) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(22),
+              child: AspectRatio(
+                aspectRatio: 1.65,
+                child: resolveProductImageProvider(imageUrl) == null
+                    ? Container(
+                        color: AppColors.softBlue.withValues(alpha: 0.28),
+                        alignment: Alignment.center,
+                        child: const Icon(Icons.science_outlined, size: 44),
+                      )
+                    : Image(
+                        image: resolveProductImageProvider(imageUrl)!,
+                        fit: BoxFit.cover,
+                      ),
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
           Text(
             brand.trim().isEmpty ? productName : '$brand • $productName',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
           Row(
@@ -183,6 +207,21 @@ class _ResultCard extends StatelessWidget {
               ),
             ],
           ),
+          if ((analysis['summary'] ?? '').toString().trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.softBlue.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Text(
+                analysis['summary'].toString(),
+                style: const TextStyle(height: 1.45),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           Text(_shortExplanation(riskLevel, ingredients.length)),
           const SizedBox(height: 14),

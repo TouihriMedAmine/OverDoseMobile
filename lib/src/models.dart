@@ -210,6 +210,62 @@ class ProductItem {
 
   bool get isHighRisk => riskLevel == 'CRITICAL' || riskLevel == 'HIGH';
 
+  String? get imageUrl => _firstNonEmpty([
+    investigationReport['image_url']?.toString(),
+    investigationReport['image']?.toString(),
+    filteringReport['image_url']?.toString(),
+    filteringReport['image']?.toString(),
+    filteringReport['source_image']?.toString(),
+    investigationReport['source_image']?.toString(),
+  ]);
+
+  List<String> get previewAlternatives => _extractStringList([
+    investigationReport['recommendations'],
+    investigationReport['alternatives'],
+    filteringReport['recommendations'],
+    filteringReport['alternatives'],
+  ]);
+
+  List<String> get safeSkipIngredients {
+    // Backend returns safe_skipped as a list
+    return _extractStringList([
+      filteringReport['safe_skipped'],
+      filteringReport['safe_to_skip'],
+      filteringReport['safe_ingredients'],
+      filteringReport['safe'],
+    ]);
+  }
+
+  List<String> get investigationChemicals {
+    // Backend returns chemicals as the risky/investigate list in filteringReport
+    return _extractStringList([
+      filteringReport['chemicals'],
+      filteringReport['investigate'],
+      filteringReport['unverified_chemicals'],
+      filteringReport['chemicals_to_investigate'],
+      filteringReport['risky_ingredients'],
+      investigationReport['chemicals'],
+      investigationReport['investigate'],
+    ]);
+  }
+
+  String get aiSummary => _firstNonEmpty([
+        investigationReport['summary']?.toString(),
+        investigationReport['ai_summary']?.toString(),
+        investigationReport['overview']?.toString(),
+        filteringReport['summary']?.toString(),
+        filteringReport['overview']?.toString(),
+      ]) ??
+      'Aucune synthèse explicite n\'a été fournie pour ce produit.';
+
+  double? get confidenceScore => _extractConfidence([
+    investigationReport['confidence'],
+    investigationReport['confidence_score'],
+    investigationReport['certainty'],
+    filteringReport['confidence'],
+    filteringReport['confidence_score'],
+  ]);
+
   factory ProductItem.fromJson(Map<String, dynamic> json) {
     return ProductItem(
       id: json['id'] as int,
@@ -682,6 +738,45 @@ class QuickScanResponse {
   }
 }
 
+@immutable
+class ScanReportRecord {
+  const ScanReportRecord({
+    required this.id,
+    required this.title,
+    required this.results,
+    required this.createdAt,
+    this.sourceImagePath,
+  });
+
+  final String id;
+  final String title;
+  final List<Map<String, dynamic>> results;
+  final DateTime createdAt;
+  final String? sourceImagePath;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'results': results,
+    'created_at': createdAt.toIso8601String(),
+    'source_image_path': sourceImagePath,
+  };
+
+  factory ScanReportRecord.fromJson(Map<String, dynamic> json) {
+    return ScanReportRecord(
+      id: (json['id'] ?? '') as String,
+      title: (json['title'] ?? 'Rapport de scan') as String,
+      results: (json['results'] as List<dynamic>? ?? const [])
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList(),
+      createdAt: DateTime.tryParse((json['created_at'] ?? '').toString()) ??
+          DateTime.now(),
+      sourceImagePath: json['source_image_path']?.toString(),
+    );
+  }
+}
+
 String deriveRiskLevelFromPayload(Map<String, dynamic> result) {
   final risks = result['risks'];
   if (risks is List && risks.isNotEmpty) {
@@ -728,4 +823,100 @@ DateTime? _tryParseDate(String? value) {
     return null;
   }
   return DateTime.tryParse(value);
+}
+
+String? _firstNonEmpty(Iterable<dynamic> values) {
+  for (final value in values) {
+    final text = value?.toString().trim();
+    if (text != null && text.isNotEmpty) {
+      return text;
+    }
+  }
+  return null;
+}
+
+List<String> _extractStringList(Iterable<dynamic> values) {
+  final items = <String>[];
+
+  void addValue(dynamic value) {
+    if (value == null) return;
+    if (value is String) {
+      final text = value.trim();
+      if (text.isNotEmpty) items.add(text);
+      return;
+    }
+    if (value is List) {
+      for (final entry in value) {
+        addValue(entry);
+      }
+      return;
+    }
+    if (value is Map) {
+      final map = Map<String, dynamic>.from(value);
+      // First, try to extract from common key names
+      for (final key in const [
+        'name',
+        'label',
+        'title',
+        'product',
+        'chemical',
+        'ingredient',
+        'value',
+        'text',
+        'description',
+        'note',
+      ]) {
+        final text = map[key]?.toString().trim();
+        if (text != null && text.isNotEmpty) {
+          items.add(text);
+          return;
+        }
+      }
+      
+      // If no standard keys found, try to extract first non-empty value
+      for (final entry in map.entries) {
+        final text = entry.value?.toString().trim();
+        if (text != null && text.isNotEmpty && text.length > 2) {
+          items.add(text);
+          return;
+        }
+      }
+      
+      // Last resort: join all values
+      final joined = map.values
+          .map((entry) => entry.toString().trim())
+          .where((entry) => entry.isNotEmpty && entry.length > 2)
+          .join(' ')
+          .trim();
+      if (joined.isNotEmpty) items.add(joined);
+      return;
+    }
+
+    final text = value.toString().trim();
+    if (text.isNotEmpty && text.length > 2) items.add(text);
+  }
+
+  for (final value in values) {
+    addValue(value);
+  }
+
+  return items.toSet().toList();
+}
+
+double? _extractConfidence(Iterable<dynamic> values) {
+  for (final value in values) {
+    if (value is num) {
+      final number = value.toDouble();
+      if (number > 1) return (number / 100).clamp(0, 1);
+      return number.clamp(0, 1);
+    }
+    if (value is String) {
+      final parsed = double.tryParse(value.trim());
+      if (parsed != null) {
+        if (parsed > 1) return (parsed / 100).clamp(0, 1);
+        return parsed.clamp(0, 1);
+      }
+    }
+  }
+  return null;
 }

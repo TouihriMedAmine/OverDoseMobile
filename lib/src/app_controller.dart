@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -24,6 +26,7 @@ class AppController extends ChangeNotifier {
   Map<String, int> productCounts = const {};
   CumulativeSummary? cumulativeSummary;
   List<Map<String, dynamic>> lastScanPayload = const [];
+  List<ScanReportRecord> scanHistory = const [];
   bool onboardingCompleted = false;
   bool hasSkippedOnboarding = false;
 
@@ -50,6 +53,7 @@ class AppController extends ChangeNotifier {
       token = await _authStore.readToken();
       if (token != null) {
         await refreshSession();
+        await _loadScanHistory();
       }
     } catch (error) {
       errorMessage = error.toString();
@@ -69,6 +73,7 @@ class AppController extends ChangeNotifier {
       await _loadProfileExtras();
       await refreshProducts(silent: true);
       await refreshCumulativeSummary(silent: true);
+      await _loadScanHistory();
       _syncOnboardingState();
     });
   }
@@ -96,6 +101,7 @@ class AppController extends ChangeNotifier {
       await _loadProfileExtras();
       await refreshProducts(silent: true);
       await refreshCumulativeSummary(silent: true);
+      await _loadScanHistory();
       onboardingCompleted = false;
       _syncOnboardingState();
     });
@@ -108,6 +114,7 @@ class AppController extends ChangeNotifier {
       await _loadProfileExtras();
       await refreshProducts(silent: true);
       await refreshCumulativeSummary(silent: true);
+      await _loadScanHistory();
       _syncOnboardingState();
     });
   }
@@ -340,6 +347,35 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> recordScanReport({
+    required List<Map<String, dynamic>> results,
+    String? sourceImagePath,
+    String? title,
+  }) async {
+    if (!isAuthenticated) return;
+
+    final normalizedTitle = title?.trim();
+    final record = ScanReportRecord(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      title: normalizedTitle == null || normalizedTitle.isEmpty
+          ? 'Rapport de scan'
+          : normalizedTitle,
+      results: results,
+      createdAt: DateTime.now(),
+      sourceImagePath: sourceImagePath,
+    );
+
+    scanHistory = [record, ...scanHistory].take(24).toList();
+    notifyListeners();
+    await _persistScanHistory();
+  }
+
+  Future<void> removeScanReport(String id) async {
+    scanHistory = scanHistory.where((item) => item.id != id).toList();
+    notifyListeners();
+    await _persistScanHistory();
+  }
+
   void clearLastScanPayload() {
     lastScanPayload = const [];
     notifyListeners();
@@ -365,11 +401,13 @@ class AppController extends ChangeNotifier {
     productCounts = const {};
     cumulativeSummary = null;
     lastScanPayload = const [];
+    scanHistory = const [];
     onboardingCompleted = false;
     hasSkippedOnboarding = false;
     selectedAllergyIds = const [];
     if (!quiet) notifyListeners();
     await _authStore.clear();
+    await _authStore.removeValue(_scanHistoryKey);
   }
 
   Map<ProductCategory, List<ProductItem>> groupedProducts() {
@@ -449,5 +487,36 @@ class AppController extends ChangeNotifier {
     }
     final hasUserType = currentUser?.userType.trim().isNotEmpty ?? false;
     onboardingCompleted = hasUserType && selectedAllergyIds.isNotEmpty;
+  }
+
+  String get _scanHistoryKey => 'scan_history_${currentUser?.id ?? 'guest'}';
+
+  Future<void> _loadScanHistory() async {
+    if (!isAuthenticated) {
+      scanHistory = const [];
+      return;
+    }
+
+    final rawEntries = await _authStore.readStringList(_scanHistoryKey);
+    final records = <ScanReportRecord>[];
+    for (final entry in rawEntries) {
+      try {
+        final decoded = jsonDecode(entry);
+        if (decoded is Map) {
+          records.add(ScanReportRecord.fromJson(Map<String, dynamic>.from(decoded)));
+        }
+      } catch (_) {
+        continue;
+      }
+    }
+    scanHistory = records;
+  }
+
+  Future<void> _persistScanHistory() async {
+    if (!isAuthenticated) return;
+    await _authStore.writeStringList(
+      _scanHistoryKey,
+      scanHistory.map((item) => jsonEncode(item.toJson())).toList(),
+    );
   }
 }

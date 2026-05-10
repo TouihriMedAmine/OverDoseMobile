@@ -7,6 +7,8 @@ import '../models.dart';
 import '../ui/animated_widgets.dart';
 import '../ui/transitions.dart';
 import '../ui/ui_kit.dart';
+import 'product_card_widgets.dart';
+import 'product_details_screen.dart';
 import 'recommendations_list_screen.dart';
 
 class ProductsScreen extends StatefulWidget {
@@ -144,11 +146,20 @@ class _ProductsScreenState extends State<ProductsScreen> {
               icon: Icons.filter_alt_off_outlined,
             )
           else
-            ...filtered.map(
-              (product) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _ProductCard(product: product),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: filtered.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.82,
               ),
+              itemBuilder: (context, index) {
+                final product = filtered[index];
+                return _ProductCard(product: product);
+              },
             ),
         ],
       ),
@@ -164,52 +175,25 @@ class _ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PressScale(
-      child: GlassCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: product.category == ProductCategory.food
-                        ? const Color(0xFFFFE7D6)
-                        : AppColors.softBlue,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Icon(
-                    product.category == ProductCategory.food
-                        ? Icons.restaurant_outlined
-                        : Icons.spa_outlined,
-                    color: AppColors.ink,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        product.displayTitle,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${product.category.label} • ${product.extractionLabel}',
-                        style: const TextStyle(color: AppColors.muted),
-                      ),
-                    ],
-                  ),
-                ),
-                RiskChip(level: product.riskLevel),
-              ],
+      child: ProductInsightCard(
+        title: product.displayTitle,
+        subtitle: '${product.category.label} • ${product.extractionLabel}',
+        imageUrl: product.imageUrl,
+        status: RiskChip(level: product.riskLevel),
+        previewAlternatives: product.previewAlternatives,
+        leadingIcon: product.category == ProductCategory.food
+            ? Icons.restaurant_outlined
+            : Icons.spa_outlined,
+        onTap: () {
+          Navigator.of(context).push(
+            SlideRightRoute(
+              builder: (_) => ProductDetailsScreen(product: product),
             ),
-            const SizedBox(height: 14),
+          );
+        },
+        footer: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -223,18 +207,14 @@ class _ProductCard extends StatelessWidget {
                   ),
               ],
             ),
-            if (product.ingredients.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: product.ingredients
-                    .take(5)
-                    .map((ingredient) => Chip(label: Text(ingredient)))
-                    .toList(),
+            if (product.userDecisionNotes.trim().isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                product.userDecisionNotes,
+                style: const TextStyle(color: AppColors.muted),
               ),
             ],
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -262,13 +242,6 @@ class _ProductCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (product.userDecisionNotes.trim().isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                product.userDecisionNotes,
-                style: const TextStyle(color: AppColors.muted),
-              ),
-            ],
           ],
         ),
       ),
