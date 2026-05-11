@@ -32,23 +32,35 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     )..repeat(reverse: true);
     _beginAlign = TweenSequence<Alignment>([
       TweenSequenceItem(
-          tween: AlignmentTween(
-              begin: Alignment.topLeft, end: Alignment.topRight),
-          weight: 1),
+        tween: AlignmentTween(
+          begin: Alignment.topLeft,
+          end: Alignment.topRight,
+        ),
+        weight: 1,
+      ),
       TweenSequenceItem(
-          tween: AlignmentTween(
-              begin: Alignment.topRight, end: Alignment.topLeft),
-          weight: 1),
+        tween: AlignmentTween(
+          begin: Alignment.topRight,
+          end: Alignment.topLeft,
+        ),
+        weight: 1,
+      ),
     ]).animate(CurvedAnimation(parent: _gradCtrl, curve: Curves.easeInOut));
     _endAlign = TweenSequence<Alignment>([
       TweenSequenceItem(
-          tween: AlignmentTween(
-              begin: Alignment.bottomRight, end: Alignment.bottomLeft),
-          weight: 1),
+        tween: AlignmentTween(
+          begin: Alignment.bottomRight,
+          end: Alignment.bottomLeft,
+        ),
+        weight: 1,
+      ),
       TweenSequenceItem(
-          tween: AlignmentTween(
-              begin: Alignment.bottomLeft, end: Alignment.bottomRight),
-          weight: 1),
+        tween: AlignmentTween(
+          begin: Alignment.bottomLeft,
+          end: Alignment.bottomRight,
+        ),
+        weight: 1,
+      ),
     ]).animate(CurvedAnimation(parent: _gradCtrl, curve: Curves.easeInOut));
   }
 
@@ -146,11 +158,12 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                                   ),
                                   const SizedBox(height: 10),
                                   Text(
-                                    'Scannez un produit, comprenez le verdict et suivez vos décisions dans le temps.',
+                                    'Scan a product, understand the verdict, and track your decisions over time.',
                                     style: TextStyle(
                                       height: 1.5,
-                                      color: AppColors.ink
-                                          .withValues(alpha: 0.72),
+                                      color: AppColors.ink.withValues(
+                                        alpha: 0.72,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -175,7 +188,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           child: _MiniPoint(
                             icon: Icons.dashboard_customize_outlined,
                             title: 'Dashboard',
-                            subtitle: 'Vue cumulative intelligente',
+                            subtitle: 'Intelligent cumulative view',
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -183,7 +196,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           child: _MiniPoint(
                             icon: Icons.center_focus_strong_outlined,
                             title: 'Scan',
-                            subtitle: 'Analyse rapide ou segmentée',
+                            subtitle: 'Quick or segmented analysis',
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -191,7 +204,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           child: _MiniPoint(
                             icon: Icons.shield_outlined,
                             title: 'Protection',
-                            subtitle: 'Alertes personnalisées',
+                            subtitle: 'Personalized alerts',
                           ),
                         ),
                       ],
@@ -214,7 +227,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                       ),
                     ),
                     child: const Text(
-                      'Créer un compte',
+                      'Create account',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
@@ -236,7 +249,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                       ),
                     ),
                     child: const Text(
-                      'J\'ai déjà un compte',
+                      'I already have an account',
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),

@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../app_controller.dart';
 import '../models.dart';
-import '../ui/animated_widgets.dart';
+import '../ui/report_copy.dart';
 import '../ui/ui_kit.dart';
 import 'product_card_widgets.dart';
 
@@ -36,8 +36,8 @@ class ScanResultScreen extends StatelessWidget {
           child: items.isEmpty
               ? const Center(
                   child: EmptyStateCard(
-                    title: 'Aucun resultat',
-                    message: 'Le scan n a renvoye aucune donnee exploitable.',
+                    title: 'No results yet',
+                    message: 'The scan did not return usable data.',
                   ),
                 )
               : _ScanResultSheet(results: items, embedded: true),
@@ -48,10 +48,7 @@ class ScanResultScreen extends StatelessWidget {
 }
 
 class _ScanResultSheet extends StatelessWidget {
-  const _ScanResultSheet({
-    required this.results,
-    this.embedded = false,
-  });
+  const _ScanResultSheet({required this.results, this.embedded = false});
 
   final List<Map<String, dynamic>> results;
   final bool embedded;
@@ -74,8 +71,8 @@ class _ScanResultSheet extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
           child: SectionTitle(
-            title: 'AI safety report',
-            subtitle: '${results.length} produit(s) analyse(s)',
+            title: ReportCopy.aiSafetyOverviewLabel(),
+            subtitle: '${results.length} product(s) analyzed',
             trailing: embedded
                 ? IconButton(
                     onPressed: () => Navigator.of(context).maybePop(),
@@ -90,7 +87,8 @@ class _ScanResultSheet extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
             itemCount: results.length,
             separatorBuilder: (_, _) => const SizedBox(height: 12),
-            itemBuilder: (context, index) => _ResultCard(result: results[index]),
+            itemBuilder: (context, index) =>
+                _ResultCard(result: results[index]),
           ),
         ),
       ],
@@ -122,8 +120,8 @@ class _ScanResultSheet extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                 child: SectionTitle(
-                  title: 'Resultat du scan',
-                  subtitle: '${results.length} produit(s) analyse(s)',
+                  title: ReportCopy.aiSafetyOverviewLabel(),
+                  subtitle: '${results.length} product(s) analyzed',
                 ),
               ),
               Expanded(
@@ -152,7 +150,9 @@ class _ResultCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final productName =
-        result['name']?.toString() ?? result['product_name']?.toString() ?? 'Produit analyse';
+        result['name']?.toString() ??
+        result['product_name']?.toString() ??
+        'Analyzed product';
     final brand = result['brand']?.toString() ?? '';
     final imageUrl = result['source_image_path']?.toString();
     final analysis = result['analysis'] is Map
@@ -162,10 +162,11 @@ class _ResultCard extends StatelessWidget {
         .map((e) => e.toString())
         .toList();
     final riskLevel = deriveRiskLevelFromPayload(result);
-    final recommendations = (result['recommendations'] as List<dynamic>? ?? const [])
-        .whereType<Map>()
-        .map((item) => Map<String, dynamic>.from(item))
-        .toList();
+    final recommendations =
+        (result['recommendations'] as List<dynamic>? ?? const [])
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
 
     return GlassCard(
       child: Column(
@@ -221,6 +222,12 @@ class _ResultCard extends StatelessWidget {
                 style: const TextStyle(height: 1.45),
               ),
             ),
+          ] else ...[
+            const SizedBox(height: 12),
+            Text(
+              ReportCopy.minimalSummary(subject: 'this scan result'),
+              style: const TextStyle(color: AppColors.muted, height: 1.45),
+            ),
           ],
           const SizedBox(height: 12),
           Text(_shortExplanation(riskLevel, ingredients.length)),
@@ -235,7 +242,7 @@ class _ResultCard extends StatelessWidget {
                   _saveWithDecision(context, result, 'approved');
                 },
                 icon: const Icon(Icons.check_circle_outline),
-                label: const Text('Ajouter'),
+                label: const Text('Keep'),
               ),
               FilledButton.tonalIcon(
                 onPressed: () {
@@ -243,7 +250,7 @@ class _ResultCard extends StatelessWidget {
                   _saveWithDecision(context, result, 'saved');
                 },
                 icon: const Icon(Icons.bookmark_border),
-                label: const Text('Sauvegarder'),
+                label: const Text('Save'),
               ),
               OutlinedButton.icon(
                 onPressed: () {
@@ -251,39 +258,41 @@ class _ResultCard extends StatelessWidget {
                   Navigator.of(context).maybePop();
                 },
                 icon: const Icon(Icons.close),
-                label: const Text('Ne pas ajouter'),
+                label: const Text('Dismiss'),
               ),
             ],
           ),
           const SizedBox(height: 12),
           ExpansionTile(
             tilePadding: EdgeInsets.zero,
-            title: const Text('Voir les details'),
+            title: const Text('Analysis details'),
             childrenPadding: const EdgeInsets.only(bottom: 8),
             children: [
               if (recommendations.isNotEmpty && riskLevel != 'LOW') ...[
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Alternatives et suggestions',
+                    'Alternatives and suggestions',
                     style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
                 const SizedBox(height: 8),
-                ...recommendations.take(3).map(
-                  (item) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      '• ${(item['product'] ?? 'Alternative').toString()}: ${(item['reason'] ?? '').toString()}',
+                ...recommendations
+                    .take(3)
+                    .map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          '• ${(item['product'] ?? 'Alternative').toString()}: ${(item['reason'] ?? '').toString()}',
+                        ),
+                      ),
                     ),
-                  ),
-                ),
                 const SizedBox(height: 8),
               ],
               if (ingredients.isEmpty)
                 const Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('Aucun ingredient extrait.'),
+                  child: Text('No ingredients were extracted.'),
                 )
               else
                 Align(
@@ -320,38 +329,37 @@ class _ResultCard extends StatelessWidget {
       if (!context.mounted) return;
       controller.clearLastScanPayload();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Produit ajoute et dashboard mis a jour.')),
+        const SnackBar(content: Text('Product saved and dashboard updated.')),
       );
       Navigator.of(context).maybePop();
     } catch (error) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Impossible d enregistrer: $error')));
+      ).showSnackBar(SnackBar(content: Text('Unable to save: $error')));
     }
   }
 }
 
 String _recommendationFromRisk(String risk) {
   return switch (risk) {
-    'CRITICAL' => 'Eviter ce produit pour le moment',
-    'HIGH' => 'Usage deconseille, cherchez une alternative',
-    'MODERATE' => 'Utilisation a reduire et surveiller',
-    'LOW' => 'Utilisation generalement acceptable',
-    _ => 'Informations insuffisantes, consultez les details',
+    'CRITICAL' => 'Avoid this product for now',
+    'HIGH' => 'Not recommended, seek alternatives',
+    'MODERATE' => 'Use with caution and monitor',
+    'LOW' => 'Generally acceptable based on current data',
+    _ => 'Insufficient data, review details for context',
   };
 }
 
 String _shortExplanation(String risk, int ingredientCount) {
   return switch (risk) {
     'CRITICAL' =>
-      'Le produit contient des signaux de risque importants. Une décision rapide est recommandée.',
-    'HIGH' => 'Des ingrédients à risque élevé ont été détectés.',
-    'MODERATE' =>
-      'Le produit présente des éléments à surveiller selon votre profil.',
+      'Strong risk signals were detected. A prompt decision is recommended.',
+    'HIGH' => 'High-risk ingredients were detected in the available data.',
+    'MODERATE' => 'Some elements should be monitored based on your profile.',
     'LOW' =>
-      'Aucun signal majeur détecté avec les données extraites ($ingredientCount ingrédients).',
-    _ => 'Le système a besoin de plus de données pour conclure précisément.',
+      'No major signals detected with the extracted data ($ingredientCount ingredients).',
+    _ => 'The system needs more verified data to conclude precisely.',
   };
 }
 
@@ -381,9 +389,10 @@ class _PulsingRiskChipState extends State<_PulsingRiskChip>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    _scale = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _scale = Tween<double>(
+      begin: 1.0,
+      end: 1.08,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
     if (_shouldPulse) _ctrl.repeat(reverse: true);
   }
 

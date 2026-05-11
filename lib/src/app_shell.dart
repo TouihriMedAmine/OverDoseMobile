@@ -28,7 +28,7 @@ class _AppShellState extends State<AppShell> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctrl = context.read<AppController>();
       if (ctrl.isAuthenticated) {
-        ctrl.refreshSession();
+        ctrl.refreshSession(allowLogout: true, silent: true);
       }
     });
   }
@@ -66,10 +66,7 @@ class _AppShellState extends State<AppShell> {
               transitionBuilder: (child, animation) {
                 return FadeTransition(opacity: animation, child: child);
               },
-              child: KeyedSubtree(
-                key: ValueKey(_index),
-                child: pages[_index],
-              ),
+              child: KeyedSubtree(key: ValueKey(_index), child: pages[_index]),
             ),
           ),
         ),
@@ -120,12 +117,12 @@ class _AppShellState extends State<AppShell> {
                       NavigationDestination(
                         icon: Icon(Icons.inventory_2_outlined),
                         selectedIcon: Icon(Icons.inventory_2),
-                        label: 'Produits',
+                        label: 'Products',
                       ),
                       NavigationDestination(
                         icon: Icon(Icons.person_outline),
                         selectedIcon: Icon(Icons.person),
-                        label: 'Profil',
+                        label: 'Profile',
                       ),
                     ],
                   ),
@@ -140,10 +137,7 @@ class _AppShellState extends State<AppShell> {
 }
 
 class _AppShellScope extends InheritedWidget {
-  const _AppShellScope({
-    required this.goToTab,
-    required super.child,
-  });
+  const _AppShellScope({required this.goToTab, required super.child});
 
   final ValueChanged<int> goToTab;
 

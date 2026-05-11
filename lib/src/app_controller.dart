@@ -51,13 +51,12 @@ class AppController extends ChangeNotifier {
 
     try {
       token = await _authStore.readToken();
-      if (token != null) {
-        await refreshSession();
+      if (token != null && token!.trim().isNotEmpty) {
+        await refreshSession(allowLogout: true, silent: true);
         await _loadScanHistory();
       }
     } catch (error) {
       errorMessage = error.toString();
-      await logout(quiet: true);
     } finally {
       isBootstrapping = false;
       notifyListeners();
@@ -69,6 +68,7 @@ class AppController extends ChangeNotifier {
       final session = await _apiClient.login(email: email, password: password);
       token = session.token;
       currentUser = session.user;
+      hasSkippedOnboarding = false;
       await _authStore.writeToken(session.token);
       await _loadProfileExtras();
       await refreshProducts(silent: true);
@@ -97,6 +97,7 @@ class AppController extends ChangeNotifier {
       );
       token = session.token;
       currentUser = session.user;
+      hasSkippedOnboarding = false;
       await _authStore.writeToken(session.token);
       await _loadProfileExtras();
       await refreshProducts(silent: true);
@@ -107,16 +108,36 @@ class AppController extends ChangeNotifier {
     });
   }
 
-  Future<void> refreshSession() async {
+  Future<void> refreshSession({
+    bool allowLogout = false,
+    bool silent = false,
+  }) async {
     if (!isAuthenticated) return;
-    await _runBusy(() async {
+    if (!silent) {
+      isBusy = true;
+      errorMessage = null;
+      notifyListeners();
+    }
+    try {
       currentUser = await _apiClient.fetchProfile(token!);
       await _loadProfileExtras();
       await refreshProducts(silent: true);
       await refreshCumulativeSummary(silent: true);
       await _loadScanHistory();
       _syncOnboardingState();
-    });
+    } on ApiException catch (error) {
+      errorMessage = error.message;
+      if (allowLogout && (error.statusCode == 401 || error.statusCode == 403)) {
+        await logout(quiet: true);
+      }
+    } catch (error) {
+      errorMessage = error.toString();
+    } finally {
+      if (!silent) {
+        isBusy = false;
+        notifyListeners();
+      }
+    }
   }
 
   Future<void> saveProfile(AppUser updatedUser) async {
@@ -148,7 +169,9 @@ class AppController extends ChangeNotifier {
       );
       // Reload fresh data
       await _loadProfileExtras();
-      _syncOnboardingState(forceComplete: updatedUser.userType.trim().isNotEmpty);
+      _syncOnboardingState(
+        forceComplete: updatedUser.userType.trim().isNotEmpty,
+      );
     });
   }
 
@@ -358,7 +381,7 @@ class AppController extends ChangeNotifier {
     final record = ScanReportRecord(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       title: normalizedTitle == null || normalizedTitle.isEmpty
-          ? 'Rapport de scan'
+          ? 'Scan report'
           : normalizedTitle,
       results: results,
       createdAt: DateTime.now(),
@@ -468,16 +491,14 @@ class AppController extends ChangeNotifier {
           (left, right) =>
               left.name.toLowerCase().compareTo(right.name.toLowerCase()),
         );
-    } catch (_) {
-    }
+    } catch (_) {}
 
     try {
       final fetchedSelectedIds = await _apiClient.fetchCurrentUserAllergyIds(
         token!,
       );
       selectedAllergyIds = fetchedSelectedIds;
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   void _syncOnboardingState({bool forceComplete = false}) {
@@ -503,7 +524,9 @@ class AppController extends ChangeNotifier {
       try {
         final decoded = jsonDecode(entry);
         if (decoded is Map) {
-          records.add(ScanReportRecord.fromJson(Map<String, dynamic>.from(decoded)));
+          records.add(
+            ScanReportRecord.fromJson(Map<String, dynamic>.from(decoded)),
+          );
         }
       } catch (_) {
         continue;

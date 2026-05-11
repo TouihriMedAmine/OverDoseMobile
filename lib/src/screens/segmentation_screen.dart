@@ -40,7 +40,7 @@ class _SegmentationScreenState extends State<SegmentationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sélectionner les produits')),
+      appBar: AppBar(title: const Text('Select products')),
       body: FutureBuilder<SegmentationBatch>(
         future: _futureBatch,
         builder: (context, snapshot) {
@@ -74,13 +74,13 @@ class _SegmentationScreenState extends State<SegmentationScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '${batch.totalProducts} produit(s) détecté(s)',
+                                '${batch.totalProducts} product(s) detected',
                                 style: Theme.of(context).textTheme.titleMedium
                                     ?.copyWith(fontWeight: FontWeight.w700),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Mode ${batch.segmentationMode}. Choisis un ou plusieurs crops à analyser.',
+                                'Mode ${batch.segmentationMode}. Select one or more crops to analyze.',
                               ),
                             ],
                           ),
@@ -132,12 +132,13 @@ class _SegmentationScreenState extends State<SegmentationScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
                   child: FilledButton(
                     onPressed:
-                        _selectedIds.isEmpty || context.watch<AppController>().isBusy
+                        _selectedIds.isEmpty ||
+                            context.watch<AppController>().isBusy
                         ? null
                         : () => _submit(batch.sessionId),
                     child: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 14),
-                      child: Text('Analyser la sélection'),
+                      child: Text('Analyze selection'),
                     ),
                   ),
                 ),
@@ -159,14 +160,12 @@ class _SegmentationScreenState extends State<SegmentationScreen> {
 
       if (!mounted) return;
 
-      Navigator.of(context).pop(
-        results,
-      );
+      Navigator.of(context).pop(results);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur d\'analyse : ${e.toString()}'),
+          content: Text('Analysis failed: ${e.toString()}'),
           backgroundColor: const Color(0xFFB53F2F),
         ),
       );
@@ -174,16 +173,11 @@ class _SegmentationScreenState extends State<SegmentationScreen> {
   }
 }
 
-/// Widget affichant un [XFile] de façon cross-platform.
-/// Sur Web : [Image.network] (le path est une blob URL).
-/// Sur mobile/desktop : [Image.file] (le path est un chemin filesystem).
+/// Renders an [XFile] in a cross-platform way.
+/// On Web: [Image.network] (the path is a blob URL).
+/// On mobile/desktop: [Image.file] (the path is a filesystem path).
 class _XFileImage extends StatelessWidget {
-  const _XFileImage({
-    required this.xfile,
-    this.width,
-    this.height,
-    this.fit,
-  });
+  const _XFileImage({required this.xfile, this.width, this.height, this.fit});
 
   final XFile xfile;
   final double? width;
@@ -240,7 +234,9 @@ class _SegmentCard extends StatelessWidget {
         children: [
           Expanded(
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(22),
+              ),
               child: product.cropUrl.isNotEmpty
                   ? Image.network(
                       AppConfig.mediaUri(product.cropUrl).toString(),
@@ -309,11 +305,15 @@ class _ErrorState extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline, size: 42, color: Color(0xFFB53F2F)),
+                const Icon(
+                  Icons.error_outline,
+                  size: 42,
+                  color: Color(0xFFB53F2F),
+                ),
                 const SizedBox(height: 12),
                 Text(error, textAlign: TextAlign.center),
                 const SizedBox(height: 14),
-                FilledButton(onPressed: onRetry, child: const Text('Réessayer')),
+                FilledButton(onPressed: onRetry, child: const Text('Retry')),
               ],
             ),
           ),

@@ -28,12 +28,14 @@ class _ProductsScreenState extends State<ProductsScreen> {
     final filtered = controller.products.where((product) {
       final decisionMatches = switch (_decisionFilter) {
         'all' => true,
-        'active' => product.userDecision == 'approved' || product.userDecision == 'saved',
+        'active' =>
+          product.userDecision == 'approved' || product.userDecision == 'saved',
         _ => product.userDecision == _decisionFilter,
       };
       final riskMatches = switch (_riskFilter) {
         'all' => true,
-        'high' => product.riskLevel == 'HIGH' || product.riskLevel == 'CRITICAL',
+        'high' =>
+          product.riskLevel == 'HIGH' || product.riskLevel == 'CRITICAL',
         'moderate' => product.riskLevel == 'MODERATE',
         'low' => product.riskLevel == 'LOW',
         _ => true,
@@ -47,9 +49,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
         children: [
           HighlightBanner(
-            title: 'Mes produits',
+            title: 'My products',
             subtitle:
-                'Votre memoire active: decisions, niveau de risque derive et acces rapide aux alternatives.',
+                'Your active product memory with decisions, risk levels, and quick access to safer alternatives.',
             icon: Icons.inventory_2_outlined,
             colors: const [AppColors.softBlue, AppColors.softPeach],
           ),
@@ -59,10 +61,12 @@ class _ProductsScreenState extends State<ProductsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SectionTitle(
-                  title: '${controller.products.length} produit(s)',
-                  subtitle: 'Filtres de decision et de risque cote application.',
+                  title: '${controller.products.length} products',
+                  subtitle: 'Filter by decision and risk level.',
                   trailing: IconButton(
-                    onPressed: controller.isBusy ? null : controller.refreshProducts,
+                    onPressed: controller.isBusy
+                        ? null
+                        : controller.refreshProducts,
                     icon: const Icon(Icons.refresh),
                   ),
                 ),
@@ -74,12 +78,12 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   runSpacing: 8,
                   children: [
                     _FilterPill(
-                      label: 'Tous',
+                      label: 'All',
                       active: _decisionFilter == 'all',
                       onTap: () => setState(() => _decisionFilter = 'all'),
                     ),
                     _FilterPill(
-                      label: 'Actifs',
+                      label: 'Active',
                       active: _decisionFilter == 'active',
                       onTap: () => setState(() => _decisionFilter = 'active'),
                     ),
@@ -94,7 +98,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       onTap: () => setState(() => _decisionFilter = 'saved'),
                     ),
                     _FilterPill(
-                      label: 'Pending',
+                      label: 'Review',
                       active: _decisionFilter == 'pending',
                       onTap: () => setState(() => _decisionFilter = 'pending'),
                     ),
@@ -106,29 +110,29 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   ],
                 ),
                 const SizedBox(height: 14),
-                const Text('Risque'),
+                const Text('Risk level'),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
                     _FilterPill(
-                      label: 'Tous',
+                      label: 'All',
                       active: _riskFilter == 'all',
                       onTap: () => setState(() => _riskFilter = 'all'),
                     ),
                     _FilterPill(
-                      label: 'Eleve',
+                      label: 'High',
                       active: _riskFilter == 'high',
                       onTap: () => setState(() => _riskFilter = 'high'),
                     ),
                     _FilterPill(
-                      label: 'Modere',
+                      label: 'Moderate',
                       active: _riskFilter == 'moderate',
                       onTap: () => setState(() => _riskFilter = 'moderate'),
                     ),
                     _FilterPill(
-                      label: 'Faible',
+                      label: 'Low',
                       active: _riskFilter == 'low',
                       onTap: () => setState(() => _riskFilter = 'low'),
                     ),
@@ -140,25 +144,41 @@ class _ProductsScreenState extends State<ProductsScreen> {
           const SizedBox(height: 16),
           if (filtered.isEmpty)
             const EmptyStateCard(
-              title: 'Aucun produit ne correspond',
+              title: 'No products match',
               message:
-                  'Essayez un autre filtre ou ajoutez de nouveaux produits depuis le scan.',
+                  'Try a different filter or scan new products to add them here.',
               icon: Icons.filter_alt_off_outlined,
             )
           else
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: filtered.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 0.82,
-              ),
-              itemBuilder: (context, index) {
-                final product = filtered[index];
-                return _ProductCard(product: product);
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
+                final crossAxisCount = width < 420
+                    ? 1
+                    : width < 900
+                    ? 2
+                    : 3;
+                final cardHeight = crossAxisCount == 1 ? 360.0 : 390.0;
+                final imageRatio = crossAxisCount == 1 ? 1.7 : 1.2;
+
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: filtered.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    mainAxisExtent: cardHeight,
+                  ),
+                  itemBuilder: (context, index) {
+                    final product = filtered[index];
+                    return _ProductCard(
+                      product: product,
+                      imageAspectRatio: imageRatio,
+                    );
+                  },
+                );
               },
             ),
         ],
@@ -168,9 +188,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
 }
 
 class _ProductCard extends StatelessWidget {
-  const _ProductCard({required this.product});
+  const _ProductCard({required this.product, required this.imageAspectRatio});
 
   final ProductItem product;
+  final double imageAspectRatio;
 
   @override
   Widget build(BuildContext context) {
@@ -179,6 +200,7 @@ class _ProductCard extends StatelessWidget {
         title: product.displayTitle,
         subtitle: '${product.category.label} • ${product.extractionLabel}',
         imageUrl: product.imageUrl,
+        imageAspectRatio: imageAspectRatio,
         status: RiskChip(level: product.riskLevel),
         previewAlternatives: product.previewAlternatives,
         leadingIcon: product.category == ProductCategory.food
@@ -202,7 +224,7 @@ class _ProductCard extends StatelessWidget {
                 if (product.updatedAt != null)
                   Chip(
                     label: Text(
-                      'Maj ${DateFormat('dd MMM').format(product.updatedAt!)}',
+                      'Updated ${DateFormat('dd MMM').format(product.updatedAt!)}',
                     ),
                   ),
               ],
@@ -230,9 +252,8 @@ class _ProductCard extends StatelessWidget {
                         ? () {
                             Navigator.of(context).push(
                               SlideRightRoute(
-                                builder: (_) => RecommendationsListScreen(
-                                  product: product,
-                                ),
+                                builder: (_) =>
+                                    RecommendationsListScreen(product: product),
                               ),
                             );
                           }
@@ -264,15 +285,18 @@ class _ProductCard extends StatelessWidget {
               children: [
                 Text(
                   product.displayTitle,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                  ),
                 ),
                 const SizedBox(height: 8),
-                const Text('Choisissez la decision utilisateur a memoriser.'),
-                const SizedBox(height: 16),
-                ...[
-                  ('approved', 'Adopter'),
-                  ('saved', 'Sauvegarder'),
-                  ('rejected', 'Rejeter'),
+                  const Text('Choose the decision you want to save.'),
+                  const SizedBox(height: 16),
+                  ...[
+                  ('approved', 'Adopt'),
+                  ('saved', 'Save'),
+                  ('rejected', 'Reject'),
                 ].map(
                   (item) => Padding(
                     padding: const EdgeInsets.only(bottom: 10),

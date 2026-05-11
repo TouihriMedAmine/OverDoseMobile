@@ -5,6 +5,7 @@ import '../app_controller.dart';
 import '../app_shell.dart';
 import '../models.dart';
 import '../ui/animated_widgets.dart';
+import '../ui/report_copy.dart';
 import '../ui/ui_kit.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -29,11 +30,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final ctrl = context.watch<AppController>();
     final summary = ctrl.cumulativeSummary;
     final user = ctrl.currentUser;
+    final featuredProduct = ctrl.products.isNotEmpty
+        ? ctrl.products.first
+        : null;
+    final showLoading = ctrl.isBusy && summary == null && ctrl.products.isEmpty;
+    final errorMessage = ctrl.errorMessage?.trim();
     final hour = DateTime.now().hour;
-    final greeting = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir';
+    final greeting = hour < 12
+        ? 'Good morning'
+        : hour < 18
+        ? 'Good afternoon'
+        : 'Good evening';
     final firstName = user?.firstName.trim().isNotEmpty == true
         ? user!.firstName
-        : 'vous';
+        : 'there';
 
     return RefreshIndicator(
       onRefresh: () => _onRefresh(ctrl),
@@ -58,6 +68,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: _MetricRow(ctrl: ctrl, summary: summary),
           ),
           const SizedBox(height: 18),
+
+          if (errorMessage != null && errorMessage.isNotEmpty) ...[
+            StaggeredFadeIn(
+              delay: const Duration(milliseconds: 100),
+              child: _StatusBanner(
+                title: 'Sync issue',
+                message: errorMessage,
+                icon: Icons.error_outline,
+                tint: AppColors.danger,
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          if (showLoading) ...[
+            const StaggeredFadeIn(
+              delay: Duration(milliseconds: 110),
+              child: _DashboardLoading(),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          if (summary != null ||
+              featuredProduct != null ||
+              (user?.aiReport.isNotEmpty ?? false)) ...[
+            StaggeredFadeIn(
+              delay: const Duration(milliseconds: 120),
+              child: _AiReportsCard(
+                summary: summary,
+                user: user,
+                featuredProduct: featuredProduct,
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
 
           if (summary != null) ...[
             StaggeredFadeIn(
@@ -98,10 +143,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
 
           // ─── Critical chemicals ───────────────────────────────────────────
-          if (summary != null && summary.criticalChemicals.isNotEmpty) ...[
+          if (summary != null &&
+              (summary.criticalChemicals.isNotEmpty ||
+                  summary.highChemicals.isNotEmpty ||
+                  summary.recurrenceRisks.isNotEmpty)) ...[
             StaggeredFadeIn(
               delay: const Duration(milliseconds: 280),
               child: _ChemicalsAlertCard(summary: summary),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          if (summary != null || featuredProduct != null) ...[
+            StaggeredFadeIn(
+              delay: const Duration(milliseconds: 300),
+              child: _RecommendationsCard(
+                summary: summary,
+                featuredProduct: featuredProduct,
+              ),
             ),
             const SizedBox(height: 16),
           ],
@@ -130,18 +189,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 16),
 
           // ─── Empty state ──────────────────────────────────────────────────
-          if (summary == null) ...[
+          if (summary == null && ctrl.products.isEmpty) ...[
             StaggeredFadeIn(
               delay: const Duration(milliseconds: 160),
               child: EmptyStateCard(
-                title: 'Votre tableau de bord se construit',
+                title: 'Your dashboard is getting ready',
                 message:
-                    'Ajoutez au moins 2 produits pour voir les tendances cumulées, les alertes et vos insights personnalisés.',
+                    'Add at least two products to unlock cumulative trends, alerts, and personalized insights.',
                 icon: Icons.insights_outlined,
                 action: FilledButton.icon(
                   onPressed: () => context.switchHomeTab(1),
                   icon: const Icon(Icons.center_focus_strong_outlined),
-                  label: const Text('Scanner maintenant'),
+                  label: const Text('Scan now'),
                 ),
               ),
             ),
@@ -242,7 +301,10 @@ class _MetricRow extends StatelessWidget {
     final highChemicals = summary == null
         ? 0
         : summary!.criticalChemicals.length + summary!.highChemicals.length;
-    final totalChemicals = ctrl.products.fold<int>(0, (acc, item) => acc + item.ingredients.length);
+    final totalChemicals = ctrl.products.fold<int>(
+      0,
+      (acc, item) => acc + item.ingredients.length,
+    );
     final organOverlap = summary?.organsUnderPressure.length ?? 0;
     final investigateCount = summary?.unverifiedChemicals.length ?? 0;
     final riskyProducts = (avoidProducts + reduceProducts).clamp(0, 9999);
@@ -251,14 +313,54 @@ class _MetricRow extends StatelessWidget {
         : '$safeProducts:$riskyProducts';
 
     final metrics = [
-      ('Analyzed products', analyzedProducts, Icons.inventory_2_outlined, AppColors.softBlue),
-      ('Total chemicals', totalChemicals, Icons.science_outlined, const Color(0xFFD4F5E2)),
-      ('High-risk chemicals', highChemicals, Icons.warning_amber_rounded, const Color(0xFFFFD8E0)),
-      ('Investigation items', investigateCount, Icons.travel_explore_outlined, const Color(0xFFFFE7D6)),
-      ('Organ overlap', organOverlap, Icons.monitor_heart_outlined, const Color(0xFFE5EDFC)),
-      ('Most affected organs', organOverlap, Icons.air_outlined, const Color(0xFFECE1FF)),
-      ('Safe vs risky', riskyProducts, Icons.balance_outlined, const Color(0xFFDDF4EA)),
-      ('Risk score', summary?.healthScore ?? 50, Icons.ssid_chart_rounded, const Color(0xFFFFE9D8)),
+      (
+        'Analyzed products',
+        analyzedProducts,
+        Icons.inventory_2_outlined,
+        AppColors.softBlue,
+      ),
+      (
+        'Total chemicals',
+        totalChemicals,
+        Icons.science_outlined,
+        const Color(0xFFD4F5E2),
+      ),
+      (
+        'High-risk chemicals',
+        highChemicals,
+        Icons.warning_amber_rounded,
+        const Color(0xFFFFD8E0),
+      ),
+      (
+        'Investigation items',
+        investigateCount,
+        Icons.travel_explore_outlined,
+        const Color(0xFFFFE7D6),
+      ),
+      (
+        'Organ overlap',
+        organOverlap,
+        Icons.monitor_heart_outlined,
+        const Color(0xFFE5EDFC),
+      ),
+      (
+        'Most affected organs',
+        organOverlap,
+        Icons.air_outlined,
+        const Color(0xFFECE1FF),
+      ),
+      (
+        'Safe vs risky',
+        riskyProducts,
+        Icons.balance_outlined,
+        const Color(0xFFDDF4EA),
+      ),
+      (
+        'Risk score',
+        summary?.healthScore ?? 50,
+        Icons.ssid_chart_rounded,
+        const Color(0xFFFFE9D8),
+      ),
     ];
 
     return LayoutBuilder(
@@ -321,28 +423,53 @@ class _InsightBoard extends StatelessWidget {
         final wide = constraints.maxWidth >= 900;
         final riskCard = _ChartCard(
           title: 'Risk distribution',
-          subtitle: 'Safe, reduce, and avoid signals from the AI reports.',
+          subtitle:
+              'Safe, reduce, and avoid signals from the AI Safety Overview.',
           child: Column(
             children: [
-              _BarLine(label: 'Safe products', value: safe / total, color: AppColors.success),
-              _BarLine(label: 'Reduce products', value: reduce / total, color: AppColors.warning),
-              _BarLine(label: 'Avoid products', value: avoid / total, color: AppColors.danger),
-              _BarLine(label: 'Risky share', value: risky / total, color: const Color(0xFFE36C58)),
+              _BarLine(
+                label: 'Safe products',
+                value: safe / total,
+                color: AppColors.success,
+              ),
+              _BarLine(
+                label: 'Reduce products',
+                value: reduce / total,
+                color: AppColors.warning,
+              ),
+              _BarLine(
+                label: 'Avoid products',
+                value: avoid / total,
+                color: AppColors.danger,
+              ),
+              _BarLine(
+                label: 'Risky share',
+                value: risky / total,
+                color: const Color(0xFFE36C58),
+              ),
             ],
           ),
         );
 
         final organCard = _ChartCard(
           title: 'Organ impact',
-          subtitle: 'Organs receiving the most pressure from the analyses.',
+          subtitle: 'Organs receiving the strongest verified signals.',
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
             children: organList.isEmpty
                 ? [
-                    const _TrendPill(label: 'No organ data yet', tint: AppColors.muted),
+                    const _TrendPill(
+                      label: 'No verified organ signal yet',
+                      tint: AppColors.muted,
+                    ),
                   ]
-                : organList.map((organ) => _TrendPill(label: organ, tint: AppColors.danger)).toList(),
+                : organList
+                      .map(
+                        (organ) =>
+                            _TrendPill(label: organ, tint: AppColors.danger),
+                      )
+                      .toList(),
           ),
         );
 
@@ -359,16 +486,16 @@ class _InsightBoard extends StatelessWidget {
                     ),
                   ]
                 : warnings
-                    .map(
-                      (warning) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          '• $warning',
-                          style: const TextStyle(height: 1.45),
+                      .map(
+                        (warning) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            '• $warning',
+                            style: const TextStyle(height: 1.45),
+                          ),
                         ),
-                      ),
-                    )
-                    .toList(),
+                      )
+                      .toList(),
           ),
         );
 
@@ -391,11 +518,7 @@ class _InsightBoard extends StatelessWidget {
             const SizedBox(width: 16),
             Expanded(
               child: Column(
-                children: [
-                  organCard,
-                  const SizedBox(height: 16),
-                  trendCard,
-                ],
+                children: [organCard, const SizedBox(height: 16), trendCard],
               ),
             ),
           ],
@@ -406,7 +529,11 @@ class _InsightBoard extends StatelessWidget {
 }
 
 class _ChartCard extends StatelessWidget {
-  const _ChartCard({required this.title, required this.subtitle, required this.child});
+  const _ChartCard({
+    required this.title,
+    required this.subtitle,
+    required this.child,
+  });
 
   final String title;
   final String subtitle;
@@ -428,7 +555,11 @@ class _ChartCard extends StatelessWidget {
 }
 
 class _BarLine extends StatelessWidget {
-  const _BarLine({required this.label, required this.value, required this.color});
+  const _BarLine({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   final String label;
   final double value;
@@ -445,7 +576,10 @@ class _BarLine extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-              Text('${(value * 100).toStringAsFixed(0)}%', style: const TextStyle(color: AppColors.muted)),
+              Text(
+                '${(value * 100).toStringAsFixed(0)}%',
+                style: const TextStyle(color: AppColors.muted),
+              ),
             ],
           ),
           const SizedBox(height: 6),
@@ -541,6 +675,279 @@ class _AnimatedMetricCard extends StatelessWidget {
   }
 }
 
+class _StatusBanner extends StatelessWidget {
+  const _StatusBanner({
+    required this.title,
+    required this.message,
+    required this.icon,
+    required this.tint,
+  });
+
+  final String title;
+  final String message;
+  final IconData icon;
+  final Color tint;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassCard(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: tint.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: tint),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  message,
+                  style: const TextStyle(color: AppColors.muted, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardLoading extends StatelessWidget {
+  const _DashboardLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: const [
+        ShimmerCard(height: 120),
+        SizedBox(height: 12),
+        ShimmerCard(height: 180),
+      ],
+    );
+  }
+}
+
+class _AiReportsCard extends StatelessWidget {
+  const _AiReportsCard({
+    required this.summary,
+    required this.user,
+    required this.featuredProduct,
+  });
+
+  final CumulativeSummary? summary;
+  final AppUser? user;
+  final ProductItem? featuredProduct;
+
+  @override
+  Widget build(BuildContext context) {
+    final riskSummary = summary?.overallAssessment;
+    final riskHighlights = summary?.keyWarnings ?? const [];
+    final personalSummary =
+        user?.personalizedSummary ?? featuredProduct?.aiSummary;
+    final personalHighlights =
+        user?.personalizedHighlights ??
+        featuredProduct?.investigationChemicals ??
+        const <String>[];
+
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionTitle(
+            title: ReportCopy.aiSafetyOverviewLabel(),
+            subtitle: ReportCopy.aiSafetyOverviewSubtitle(),
+          ),
+          const SizedBox(height: 14),
+          _ReportPanel(
+            title: ReportCopy.aiSafetyOverviewLabel(),
+            subtitle: 'Cumulative view and priority safety signals.',
+            icon: Icons.analytics_outlined,
+            tint: const Color(0xFFFFD8E0),
+            summary: riskSummary,
+            highlights: riskHighlights,
+          ),
+          const SizedBox(height: 12),
+          _ReportPanel(
+            title: 'Personalized AI Brief',
+            subtitle: 'Insights aligned to your health profile.',
+            icon: Icons.person_outline,
+            tint: const Color(0xFFDDEBFF),
+            summary: personalSummary,
+            highlights: personalHighlights,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReportPanel extends StatelessWidget {
+  const _ReportPanel({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.tint,
+    required this.summary,
+    required this.highlights,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color tint;
+  final String? summary;
+  final List<String> highlights;
+
+  @override
+  Widget build(BuildContext context) {
+    final safeSummary = summary?.trim();
+    final hasHighlights = highlights.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: tint.withValues(alpha: 0.8)),
+      ),
+      child: ExpansionTile(
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: const EdgeInsets.only(top: 10),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        collapsedShape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+        ),
+        title: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: AppColors.ink, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        children: [
+          if (safeSummary != null && safeSummary.isNotEmpty)
+            Text(safeSummary, style: const TextStyle(height: 1.45))
+          else
+            Text(
+              ReportCopy.minimalSummary(subject: title.toLowerCase()),
+              style: const TextStyle(color: AppColors.muted, height: 1.45),
+            ),
+          if (hasHighlights) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: highlights.take(5).map((item) {
+                return _MiniPill(label: item);
+              }).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniPill extends StatelessWidget {
+  const _MiniPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: AppColors.ink,
+        ),
+      ),
+    );
+  }
+}
+
+class _OverlapChip extends StatelessWidget {
+  const _OverlapChip({
+    required this.label,
+    required this.count,
+    this.tint = AppColors.danger,
+  });
+
+  final String label;
+  final int count;
+  final Color tint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: tint.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: tint.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        count > 0 ? '$label · $count' : label,
+        style: TextStyle(
+          color: tint,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Overall Assessment Card ─────────────────────────────────────────────────
 class _OverallAssessmentCard extends StatelessWidget {
   const _OverallAssessmentCard({required this.summary});
@@ -549,7 +956,8 @@ class _OverallAssessmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasRisk = summary.productsToAvoid > 0 || summary.criticalChemicals.isNotEmpty;
+    final hasRisk =
+        summary.productsToAvoid > 0 || summary.criticalChemicals.isNotEmpty;
     final gradient = hasRisk
         ? [const Color(0xFFFFE7D6), const Color(0xFFFFD8E0)]
         : [const Color(0xFFD4F5E2), AppColors.softBlue];
@@ -592,7 +1000,7 @@ class _OverallAssessmentCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  hasRisk ? 'Attention requise' : 'Profil globalement sain',
+                  hasRisk ? 'Action recommended' : 'Overall stable profile',
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
@@ -627,6 +1035,22 @@ class _OrgansCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final overlapItems =
+        summary.organGlobalAnalysis.entries
+            .map((entry) {
+              final raw = entry.value;
+              final count = raw is Map
+                  ? (raw['total_unique_count'] as num?)?.toInt() ??
+                        (raw['count'] as num?)?.toInt() ??
+                        (raw['total'] as num?)?.toInt() ??
+                        0
+                  : (raw is num ? raw.toInt() : 0);
+              return (entry.key, count);
+            })
+            .where((item) => item.$2 > 0)
+            .toList()
+          ..sort((a, b) => b.$2.compareTo(a.$2));
+
     return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -636,14 +1060,14 @@ class _OrgansCard extends StatelessWidget {
               PulsingDot(color: AppColors.warning),
               const SizedBox(width: 10),
               const Text(
-                'Organes sous pression',
+                'Organs under pressure',
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
               ),
             ],
           ),
           const SizedBox(height: 6),
           const Text(
-            'Ces organes sont exposés à des ingrédients préoccupants dans vos produits.',
+            'These organs are receiving the strongest signals from your current products.',
             style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.4),
           ),
           const SizedBox(height: 14),
@@ -654,6 +1078,23 @@ class _OrgansCard extends StatelessWidget {
                 .map((organ) => OrganChip(organ: organ))
                 .toList(),
           ),
+          if (overlapItems.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+            const Text(
+              'Ingredient ↔ organ overlap',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: overlapItems.take(6).map((item) {
+                return _OverlapChip(label: item.$1, count: item.$2);
+              }).toList(),
+            ),
+          ],
         ],
       ),
     );
@@ -662,10 +1103,7 @@ class _OrgansCard extends StatelessWidget {
 
 // ─── Product Verdicts Card ────────────────────────────────────────────────────
 class _ProductVerdictsCard extends StatelessWidget {
-  const _ProductVerdictsCard({
-    required this.summary,
-    required this.onViewAll,
-  });
+  const _ProductVerdictsCard({required this.summary, required this.onViewAll});
 
   final CumulativeSummary summary;
   final VoidCallback onViewAll;
@@ -679,11 +1117,11 @@ class _ProductVerdictsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SectionTitle(
-            title: 'Verdicts produits',
-            subtitle: 'Analyse cumulative de votre panier.',
+            title: 'Product verdicts',
+            subtitle: 'Cumulative analysis across your list.',
             trailing: TextButton(
               onPressed: onViewAll,
-              child: const Text('Voir tout'),
+              child: const Text('View all'),
             ),
           ),
           const SizedBox(height: 14),
@@ -706,7 +1144,7 @@ class _VerdictRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = verdict['product_name']?.toString() ?? 'Produit';
+    final name = verdict['product_name']?.toString() ?? 'Product';
     final recommendation = verdict['recommendation']?.toString() ?? '';
 
     return Container(
@@ -720,10 +1158,7 @@ class _VerdictRow extends StatelessWidget {
           Expanded(
             child: Text(
               name,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -744,9 +1179,24 @@ class _ChemicalsAlertCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final recurrence = summary.recurrenceRisks
+        .map((item) {
+          final name =
+              item['chemical']?.toString() ??
+              item['ingredient']?.toString() ??
+              item['name']?.toString();
+          final freq =
+              (item['frequency'] as num?)?.toInt() ??
+              (item['count'] as num?)?.toInt() ??
+              0;
+          return (name, freq);
+        })
+        .where((item) => (item.$1 ?? '').trim().isNotEmpty)
+        .toList();
+
     final all = [
-      ...summary.criticalChemicals.map((c) => (c, true)),
-      ...summary.highChemicals.take(3).map((c) => (c, false)),
+      ...summary.criticalChemicals.map((c) => (c, true, 0)),
+      ...summary.highChemicals.take(4).map((c) => (c, false, 0)),
     ];
 
     return GlassCard(
@@ -758,24 +1208,43 @@ class _ChemicalsAlertCard extends StatelessWidget {
               PulsingDot(color: AppColors.danger),
               const SizedBox(width: 10),
               const Text(
-                'Ingrédients préoccupants',
+                'Concerning ingredients',
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
               ),
             ],
           ),
           const SizedBox(height: 6),
           const Text(
-            'Détectés dans plusieurs produits de votre liste.',
+            'Detected across multiple products in your list.',
             style: TextStyle(color: AppColors.muted, fontSize: 12),
           ),
           const SizedBox(height: 14),
+          if (recurrence.isNotEmpty) ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: recurrence.take(6).map((item) {
+                final label = item.$1 ?? '';
+                final count = item.$2;
+                return _OverlapChip(
+                  label: label,
+                  count: count,
+                  tint: AppColors.warning,
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 12),
+          ],
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: all.take(8).map((item) {
               final color = item.$2 ? AppColors.danger : AppColors.warning;
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(999),
@@ -811,34 +1280,101 @@ class _SafeIngredientsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SectionTitle(
-            title: 'Ingrédients maîtrisés',
-            subtitle: 'Ces ingrédients dans vos produits sont considérés sûrs.',
+            title: 'Verified safe ingredients',
+            subtitle: 'Ingredients in your products that are considered safe.',
           ),
           const SizedBox(height: 14),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: summary.safeIngredients.take(10).map(
-              (ing) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: AppColors.success.withValues(alpha: 0.25),
+            children: summary.safeIngredients
+                .take(10)
+                .map(
+                  (ing) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: AppColors.success.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Text(
+                      ing,
+                      style: const TextStyle(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
-                ),
-                child: Text(
-                  ing,
-                  style: const TextStyle(
-                    color: AppColors.success,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ).toList(),
+                )
+                .toList(),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Recommendations Card ───────────────────────────────────────────────────
+class _RecommendationsCard extends StatelessWidget {
+  const _RecommendationsCard({
+    required this.summary,
+    required this.featuredProduct,
+  });
+
+  final CumulativeSummary? summary;
+  final ProductItem? featuredProduct;
+
+  @override
+  Widget build(BuildContext context) {
+    final fromApi = summary?.recommendationHighlights ?? const <String>[];
+    final fromVerdicts = (summary?.sortedVerdicts ?? const [])
+        .where(
+          (item) =>
+              (item['recommendation'] ?? '').toString().toLowerCase() != 'keep',
+        )
+        .map((item) {
+          final name = item['product_name']?.toString() ?? 'Product';
+          final rec = item['recommendation']?.toString() ?? '';
+          return '$name: ${rec.replaceAll('_', ' ')}';
+        })
+        .toList();
+    final fromProduct =
+        featuredProduct?.previewAlternatives ?? const <String>[];
+
+    final items = fromApi.isNotEmpty
+        ? fromApi
+        : fromVerdicts.isNotEmpty
+        ? fromVerdicts
+        : fromProduct;
+
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionTitle(
+            title: 'Priority recommendations',
+            subtitle: 'Fast actions suggested by the cumulative analysis.',
+          ),
+          const SizedBox(height: 12),
+          if (items.isEmpty)
+            const Text(
+              'No priority recommendation yet. Keep scanning to enrich the report.',
+              style: TextStyle(color: AppColors.muted, height: 1.4),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: items.take(6).map((item) {
+                return _MiniPill(label: item);
+              }).toList(),
+            ),
         ],
       ),
     );
@@ -855,10 +1391,30 @@ class _DecisionSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final counts = ctrl.productCounts;
     final items = [
-      ('Adoptés', counts['approved'] ?? 0, AppColors.success, Icons.check_circle_outline),
-      ('Sauvegardés', counts['saved'] ?? 0, AppColors.softBlue, Icons.bookmark_outline),
-      ('En attente', counts['pending'] ?? 0, AppColors.warning, Icons.hourglass_empty_outlined),
-      ('Rejetés', counts['rejected'] ?? 0, AppColors.danger, Icons.close_outlined),
+      (
+        'Adopted',
+        counts['approved'] ?? 0,
+        AppColors.success,
+        Icons.check_circle_outline,
+      ),
+      (
+        'Saved',
+        counts['saved'] ?? 0,
+        AppColors.softBlue,
+        Icons.bookmark_outline,
+      ),
+      (
+        'Review',
+        counts['pending'] ?? 0,
+        AppColors.warning,
+        Icons.hourglass_empty_outlined,
+      ),
+      (
+        'Rejected',
+        counts['rejected'] ?? 0,
+        AppColors.danger,
+        Icons.close_outlined,
+      ),
     ];
 
     return GlassCard(
@@ -866,8 +1422,8 @@ class _DecisionSummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SectionTitle(
-            title: 'Mes décisions',
-            subtitle: 'Mémoire active de vos choix produits.',
+            title: 'My decisions',
+            subtitle: 'A live memory of your product choices.',
           ),
           const SizedBox(height: 16),
           Row(
@@ -934,10 +1490,10 @@ class _HighRiskProductsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SectionTitle(
-            title: 'Produits à surveiller',
+            title: 'Products to watch',
             subtitle: flagged.isEmpty
-                ? 'Aucun produit à risque élevé détecté.'
-                : 'À traiter rapidement depuis Mes produits.',
+                ? 'No high-risk product has been detected.'
+                : 'Handle quickly from your product list.',
           ),
           if (flagged.isNotEmpty) ...[
             const SizedBox(height: 14),
@@ -960,7 +1516,9 @@ class _HighRiskProductsCard extends StatelessWidget {
                           children: [
                             Text(
                               product.displayTitle,
-                              style: const TextStyle(fontWeight: FontWeight.w700),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -983,7 +1541,7 @@ class _HighRiskProductsCard extends StatelessWidget {
             const SizedBox(height: 4),
             FilledButton.tonal(
               onPressed: () => context.switchHomeTab(2),
-              child: const Text('Ouvrir Mes produits'),
+              child: const Text('Open My products'),
             ),
           ],
         ],
@@ -1003,7 +1561,7 @@ class _QuickActionsCard extends StatelessWidget {
         Expanded(
           child: _QuickActionButton(
             icon: Icons.center_focus_strong_outlined,
-            label: 'Scanner',
+            label: 'Scan',
             onTap: () => context.switchHomeTab(1),
             color: AppColors.softBlue,
           ),
@@ -1012,7 +1570,7 @@ class _QuickActionsCard extends StatelessWidget {
         Expanded(
           child: _QuickActionButton(
             icon: Icons.inventory_2_outlined,
-            label: 'Mes produits',
+            label: 'My products',
             onTap: () => context.switchHomeTab(2),
             color: AppColors.softPink,
           ),
@@ -1055,10 +1613,7 @@ class _QuickActionButton extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
             ),
           ],
         ),

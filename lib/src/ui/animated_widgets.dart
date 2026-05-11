@@ -32,9 +32,10 @@ class _StaggeredFadeInState extends State<StaggeredFadeIn>
     super.initState();
     _ctrl = AnimationController(vsync: this, duration: widget.duration);
     _opacity = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
-    _slide = Tween<Offset>(begin: widget.offset, end: Offset.zero).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
-    );
+    _slide = Tween<Offset>(
+      begin: widget.offset,
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
     Future.delayed(widget.delay, () {
       if (mounted) _ctrl.forward();
     });
@@ -52,10 +53,8 @@ class _StaggeredFadeInState extends State<StaggeredFadeIn>
       opacity: _opacity,
       child: AnimatedBuilder(
         animation: _slide,
-        builder: (_, child) => Transform.translate(
-          offset: _slide.value,
-          child: child,
-        ),
+        builder: (_, child) =>
+            Transform.translate(offset: _slide.value, child: child),
         child: widget.child,
       ),
     );
@@ -119,9 +118,10 @@ class _ShimmerCardState extends State<ShimmerCard>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
-    _anim = Tween<double>(begin: 0.4, end: 0.85).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _anim = Tween<double>(
+      begin: 0.4,
+      end: 0.85,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override
@@ -156,10 +156,10 @@ class VerdictBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (color, label, icon) = switch (recommendation.toLowerCase()) {
-      'eliminate' => (AppColors.danger, 'À éviter', Icons.block_outlined),
-      'reduce' => (AppColors.warning, 'À réduire', Icons.trending_down_rounded),
-      'keep' => (AppColors.success, 'Sûr', Icons.check_circle_outline),
-      _ => (AppColors.muted, 'Inconnu', Icons.help_outline),
+      'eliminate' => (AppColors.danger, 'Avoid', Icons.block_outlined),
+      'reduce' => (AppColors.warning, 'Reduce', Icons.trending_down_rounded),
+      'keep' => (AppColors.success, 'Safe', Icons.check_circle_outline),
+      _ => (AppColors.muted, 'Unknown', Icons.help_outline),
     };
 
     return Container(
@@ -198,11 +198,17 @@ class OrganChip extends StatelessWidget {
   static IconData _iconFor(String organ) {
     final lower = organ.toLowerCase();
     if (lower.contains('liver') || lower.contains('foie')) return Icons.opacity;
-    if (lower.contains('kidney') || lower.contains('rein')) return Icons.water_drop_outlined;
-    if (lower.contains('skin') || lower.contains('peau')) return Icons.face_outlined;
+    if (lower.contains('kidney') || lower.contains('rein'))
+      return Icons.water_drop_outlined;
+    if (lower.contains('skin') || lower.contains('peau'))
+      return Icons.face_outlined;
     if (lower.contains('lung') || lower.contains('poumon')) return Icons.air;
-    if (lower.contains('heart') || lower.contains('coeur') || lower.contains('cœur')) return Icons.favorite_outline;
-    if (lower.contains('brain') || lower.contains('cerveau')) return Icons.psychology_outlined;
+    if (lower.contains('heart') ||
+        lower.contains('coeur') ||
+        lower.contains('cœur'))
+      return Icons.favorite_outline;
+    if (lower.contains('brain') || lower.contains('cerveau'))
+      return Icons.psychology_outlined;
     return Icons.medical_services_outlined;
   }
 
@@ -258,9 +264,10 @@ class _PulsingDotState extends State<PulsingDot>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
-    _scale = Tween<double>(begin: 0.85, end: 1.15).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
+    _scale = Tween<double>(
+      begin: 0.85,
+      end: 1.15,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
   }
 
   @override

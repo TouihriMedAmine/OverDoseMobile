@@ -24,9 +24,8 @@ class HomeScreen extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
           sliver: SliverToBoxAdapter(
             child: _HeaderCard(
-              name: user?.displayName ?? 'Utilisateur',
-              subtitle:
-                  user?.email ?? 'Connecte-toi pour synchroniser ton profil',
+              name: user?.displayName ?? 'User',
+              subtitle: user?.email ?? 'Sign in to sync your profile',
             ),
           ),
         ),
@@ -37,7 +36,7 @@ class HomeScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: _MetricCard(
-                    label: 'Produits',
+                    label: 'Products',
                     value: totalProducts.toString(),
                     icon: Icons.inventory_2_outlined,
                   ),
@@ -53,7 +52,7 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _MetricCard(
-                    label: 'Cosmétique',
+                    label: 'Cosmetics',
                     value: cosmeticCount.toString(),
                     icon: Icons.palette_outlined,
                   ),
@@ -77,7 +76,7 @@ class HomeScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           sliver: SliverToBoxAdapter(
             child: Text(
-              'Derniers produits',
+              'Latest products',
               style: Theme.of(context).textTheme.titleLarge,
             ),
           ),
@@ -132,7 +131,7 @@ class _HeaderCard extends StatelessWidget {
           const Icon(Icons.camera_alt_outlined, color: Colors.white),
           const SizedBox(height: 16),
           Text(
-            'Bonjour, $name',
+            'Hello, $name',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
@@ -200,7 +199,7 @@ class _QuickActionsCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Actions rapides',
+              'Quick actions',
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
@@ -209,7 +208,7 @@ class _QuickActionsCard extends StatelessWidget {
             FilledButton.icon(
               onPressed: () => onRefresh(),
               icon: const Icon(Icons.sync),
-              label: const Text('Synchroniser le profil et les produits'),
+              label: const Text('Sync profile and products'),
             ),
             const SizedBox(height: 10),
             FilledButton.tonalIcon(
@@ -218,13 +217,13 @@ class _QuickActionsCard extends StatelessWidget {
                 SlideRightRoute(builder: (_) => const CompareListsScreen()),
               ),
               icon: const Icon(Icons.compare_arrows),
-              label: const Text('Comparer des listes de produits'),
+              label: const Text('Compare product lists'),
             ),
             const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: () => onLogout(quiet: false),
               icon: const Icon(Icons.logout),
-              label: const Text('Se déconnecter'),
+              label: const Text('Sign out'),
             ),
           ],
         ),
@@ -295,7 +294,7 @@ class _EmptyState extends StatelessWidget {
           children: const [
             Icon(Icons.inbox_outlined, size: 40, color: Colors.black45),
             SizedBox(height: 12),
-            Text('Aucun produit synchronisé pour le moment.'),
+            Text('No products synced yet.'),
           ],
         ),
       ),

@@ -22,7 +22,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _notesController = TextEditingController();
   final _newAllergyController = TextEditingController();
 
-
   DateTime? _dateOfBirth;
   String _gender = 'male';
   String _userType = '';
@@ -71,8 +70,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         StaggeredFadeIn(
           child: HighlightBanner(
-            title: 'Mon Profil',
-            subtitle: 'Informations personnelles et contexte de santé.',
+            title: 'My profile',
+            subtitle: 'Personal information and health context.',
             icon: Icons.person_outline_rounded,
             colors: const [AppColors.softBlue, AppColors.softPink],
           ),
@@ -90,26 +89,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SectionTitle(
-                  title: 'Informations',
-                  subtitle: 'Données principales du compte',
+                  title: 'Information',
+                  subtitle: 'Key account details',
                 ),
                 const SizedBox(height: 16),
-                _buildInfoRow('Prénom', user?.firstName ?? '-'),
+                _buildInfoRow('First name', user?.firstName ?? '-'),
                 const SizedBox(height: 8),
-                _buildInfoRow('Nom', user?.lastName ?? '-'),
+                _buildInfoRow('Last name', user?.lastName ?? '-'),
                 const SizedBox(height: 8),
                 _buildInfoRow('Email', user?.email ?? '-'),
                 const SizedBox(height: 8),
                 _buildInfoRow(
-                  'Date de naissance',
+                  'Date of birth',
                   user?.dateOfBirth != null
                       ? DateFormat('dd/MM/yyyy').format(user!.dateOfBirth!)
                       : '-',
                 ),
                 const SizedBox(height: 8),
-                _buildInfoRow('Genre', _formatGender(user?.gender ?? '')),
+                _buildInfoRow('Gender', _formatGender(user?.gender ?? '')),
                 const SizedBox(height: 8),
-                _buildInfoRow('Profil santé', user?.userTypeLabel ?? '-'),
+                _buildInfoRow('Health profile', user?.userTypeLabel ?? '-'),
               ],
             ),
           ),
@@ -122,13 +121,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SectionTitle(
-                  title: 'Allergies et sensibilités',
-                  subtitle: 'Votre contexte personnalisé',
+                  title: 'Allergies & sensitivities',
+                  subtitle: 'Your personalized context',
                 ),
                 const SizedBox(height: 16),
                 if (controller.selectedAllergyIds.isEmpty)
                   const Text(
-                    'Aucune allergie renseignée',
+                    'No allergies listed yet',
                     style: TextStyle(color: AppColors.muted),
                   )
                 else
@@ -136,12 +135,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     spacing: 8,
                     runSpacing: 8,
                     children: controller.allergies
-                        .where((a) => controller.selectedAllergyIds.contains(a.id))
+                        .where(
+                          (a) => controller.selectedAllergyIds.contains(a.id),
+                        )
                         .map(
                           (a) => Chip(
                             label: Text(a.name),
-                            backgroundColor:
-                                AppColors.softBlue.withValues(alpha: 0.1),
+                            backgroundColor: AppColors.softBlue.withValues(
+                              alpha: 0.1,
+                            ),
                             side: BorderSide.none,
                           ),
                         )
@@ -150,9 +152,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (user != null && user.notes.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   const Text(
-                    'Autres informations',
+                    'Additional notes',
                     style: TextStyle(
-                        fontWeight: FontWeight.bold, color: AppColors.ink),
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.ink,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -172,7 +176,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: const Icon(Icons.edit_outlined),
             label: const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text('Modifier le profil'),
+              child: Text('Edit profile'),
             ),
           ),
         ),
@@ -186,19 +190,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     final confirmed = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
-                        title: const Text('Se déconnecter ?'),
+                        title: const Text('Sign out?'),
                         content: const Text(
-                            'Vous devrez vous reconnecter pour accéder à vos données.'),
+                          'You will need to sign in again to access your data.',
+                        ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('Annuler'),
+                            child: const Text('Cancel'),
                           ),
                           FilledButton(
                             onPressed: () => Navigator.pop(ctx, true),
                             style: FilledButton.styleFrom(
-                                backgroundColor: AppColors.danger),
-                            child: const Text('Déconnexion'),
+                              backgroundColor: AppColors.danger,
+                            ),
+                            child: const Text('Sign out'),
                           ),
                         ],
                       ),
@@ -209,13 +215,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
             icon: const Icon(Icons.logout_rounded, color: AppColors.danger),
             label: const Text(
-              'Se déconnecter',
+              'Sign out',
               style: TextStyle(color: AppColors.danger),
             ),
             style: OutlinedButton.styleFrom(
-              side: BorderSide(
-                color: AppColors.danger.withValues(alpha: 0.35),
-              ),
+              side: BorderSide(color: AppColors.danger.withValues(alpha: 0.35)),
             ),
           ),
         ),
@@ -235,10 +239,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String _formatGender(String gender) {
     return switch (gender) {
-      'male' => 'Homme',
-      'female' => 'Femme',
-      'other' => 'Autre',
-      'prefer_not_to_say' => 'Non precise',
+      'male' => 'Male',
+      'female' => 'Female',
+      'other' => 'Other',
+      'prefer_not_to_say' => 'Not specified',
       _ => '-',
     };
   }
@@ -248,9 +252,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
       children: [
         HighlightBanner(
-          title: 'Edition du Profil',
-          subtitle:
-              'Edition simple de vos informations, de votre profil sante et de vos allergies.',
+          title: 'Edit profile',
+          subtitle: 'Edit your information, health profile, and allergies.',
           icon: Icons.edit_note_rounded,
           colors: const [AppColors.softPink, AppColors.softBlue],
         ),
@@ -264,8 +267,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SectionTitle(
-                  title: 'Informations personnelles',
-                  subtitle: 'Mode edition unique avec sauvegarde atomique.',
+                  title: 'Personal information',
+                  subtitle: 'Single edit flow with secure save.',
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -273,9 +276,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: _firstNameController,
-                        decoration: const InputDecoration(labelText: 'Prenom'),
-                        validator: (value) => (value == null || value.trim().isEmpty)
-                            ? 'Prenom requis'
+                        decoration: const InputDecoration(labelText: 'First name'),
+                        validator: (value) =>
+                            (value == null || value.trim().isEmpty)
+                            ? 'First name required'
                             : null,
                       ),
                     ),
@@ -283,9 +287,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: _lastNameController,
-                        decoration: const InputDecoration(labelText: 'Nom'),
-                        validator: (value) => (value == null || value.trim().isEmpty)
-                            ? 'Nom requis'
+                        decoration: const InputDecoration(labelText: 'Last name'),
+                        validator: (value) =>
+                            (value == null || value.trim().isEmpty)
+                            ? 'Last name required'
                             : null,
                       ),
                     ),
@@ -295,38 +300,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(labelText: 'Email'),
-                  validator: (value) =>
-                      (value == null || value.trim().isEmpty) ? 'Email requis' : null,
+                  validator: (value) => (value == null || value.trim().isEmpty)
+                      ? 'Email required'
+                      : null,
                 ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String>(
                   value: _gender,
-                  decoration: const InputDecoration(labelText: 'Genre'),
+                  decoration: const InputDecoration(labelText: 'Gender'),
                   items: const [
-                    DropdownMenuItem(value: 'male', child: Text('Homme')),
-                    DropdownMenuItem(value: 'female', child: Text('Femme')),
-                    DropdownMenuItem(value: 'other', child: Text('Autre')),
+                    DropdownMenuItem(value: 'male', child: Text('Male')),
+                    DropdownMenuItem(value: 'female', child: Text('Female')),
+                    DropdownMenuItem(value: 'other', child: Text('Other')),
                     DropdownMenuItem(
                       value: 'prefer_not_to_say',
-                      child: Text('Ne pas preciser'),
+                      child: Text('Prefer not to say'),
                     ),
                   ],
-                  onChanged: (value) => setState(() => _gender = value ?? 'male'),
+                  onChanged: (value) =>
+                      setState(() => _gender = value ?? 'male'),
                 ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String>(
                   value: _userType.isEmpty ? null : _userType,
-                  decoration: const InputDecoration(labelText: 'Profil sante'),
+                  decoration: const InputDecoration(labelText: 'Health profile'),
                   items: const [
-                    DropdownMenuItem(value: 'adult', child: Text('Adulte')),
-                    DropdownMenuItem(value: 'pregnant', child: Text('Grossesse')),
-                    DropdownMenuItem(value: 'child', child: Text('Enfant')),
+                    DropdownMenuItem(value: 'adult', child: Text('Adult')),
+                    DropdownMenuItem(
+                      value: 'pregnant',
+                      child: Text('Pregnancy'),
+                    ),
+                    DropdownMenuItem(value: 'child', child: Text('Child')),
                     DropdownMenuItem(
                       value: 'sensitive_skin',
-                      child: Text('Peau sensible'),
+                      child: Text('Sensitive skin'),
                     ),
-                    DropdownMenuItem(value: 'athlete', child: Text('Sportif')),
-                    DropdownMenuItem(value: 'other', child: Text('Autre')),
+                    DropdownMenuItem(value: 'athlete', child: Text('Athlete')),
+                    DropdownMenuItem(value: 'other', child: Text('Other')),
                   ],
                   onChanged: (value) => setState(() => _userType = value ?? ''),
                 ),
@@ -336,7 +346,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: const Icon(Icons.cake_outlined),
                   label: Text(
                     _dateOfBirth == null
-                        ? 'Date de naissance'
+                        ? 'Date of birth'
                         : DateFormat('dd/MM/yyyy').format(_dateOfBirth!),
                   ),
                 ),
@@ -346,56 +356,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: 16),
         GlassCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SectionTitle(
-                title: 'Allergies et notes',
-                subtitle: 'Vous pouvez selectionner vos allergies et enrichir votre contexte.',
-              ),
-              const SizedBox(height: 14),
-              if (controller.allergies.isEmpty)
-                const Chip(label: Text('Liste vide'))
-              else
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: controller.allergies
-                      .map(
-                        (allergy) => FilterChip(
-                          label: Text(allergy.name),
-                          selected: _selectedAllergyIds.contains(allergy.id),
-                          onSelected: controller.isBusy
-                              ? null
-                              : (selected) => setState(() {
-                                  if (selected) {
-                                    _selectedAllergyIds.add(allergy.id);
-                                  } else {
-                                    _selectedAllergyIds.remove(allergy.id);
-                                  }
-                                }),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SectionTitle(
+                    title: 'Allergies & notes',
+                    subtitle:
+                        'Select allergies and add any context that matters to you.',
+                  ),
+                  const SizedBox(height: 14),
+                  if (controller.allergies.isEmpty)
+                    const Chip(label: Text('No entries'))
+                  else
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: controller.allergies.map((allergy) {
+                    final selected = _selectedAllergyIds.contains(allergy.id);
+                    return FilterChip(
+                      label: Text(
+                        allergy.name,
+                        style: TextStyle(
+                          color: selected ? Colors.white : AppColors.ink,
+                          fontWeight: FontWeight.w600,
                         ),
-                      )
-                      .toList(),
-                ),
+                      ),
+                      selected: selected,
+                      selectedColor: AppColors.ink,
+                      checkmarkColor: Colors.white,
+                      onSelected: controller.isBusy
+                          ? null
+                          : (value) => setState(() {
+                              if (value) {
+                                _selectedAllergyIds.add(allergy.id);
+                              } else {
+                                _selectedAllergyIds.remove(allergy.id);
+                              }
+                            }),
+                    );
+                    }).toList(),
+                  ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(
+            Expanded(
                     child: TextField(
                       controller: _newAllergyController,
                       textInputAction: TextInputAction.done,
                       decoration: const InputDecoration(
-                        labelText: 'Ajouter une allergie',
-                        hintText: 'Ex. arachide, soja, kiwi',
+                        labelText: 'Add an allergy',
+                        hintText: 'e.g. peanut, soy, kiwi',
                       ),
                       onSubmitted: (_) => _addAllergy(context),
                     ),
                   ),
                   const SizedBox(width: 12),
                   FilledButton(
-                    onPressed: controller.isBusy ? null : () => _addAllergy(context),
-                    child: const Text('Ajouter'),
+                    onPressed: controller.isBusy
+                        ? null
+                        : () => _addAllergy(context),
+                    child: const Text('Add'),
                   ),
                 ],
               ),
@@ -405,9 +425,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 minLines: 3,
                 maxLines: 5,
                 decoration: const InputDecoration(
-                  labelText: 'Autres informations',
+                  labelText: 'Additional notes',
                   hintText:
-                      'Ex. je suis sensible aux parfums forts, je suis vegetarien...',
+                      'e.g. sensitive to strong fragrances, vegetarian, etc.',
                 ),
               ),
             ],
@@ -418,18 +438,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Expanded(
               child: OutlinedButton(
-                onPressed: controller.isBusy ? null : () {
-                  setState(() {
-                    _isEditing = false;
-                    _initializedUserId = null; // force reload from user
-                  });
-                },
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Text('Annuler'),
+                onPressed: controller.isBusy
+                    ? null
+                    : () {
+                        setState(() {
+                          _isEditing = false;
+                          _initializedUserId = null; // force reload from user
+                        });
+                      },
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Text('Cancel'),
+                  ),
                 ),
               ),
-            ),
             const SizedBox(width: 12),
             Expanded(
               flex: 2,
@@ -443,7 +465,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           width: 18,
                           child: CircularProgressIndicator(strokeWidth: 2.2),
                         )
-                      : const Text('Enregistrer'),
+                      : const Text('Save'),
                 ),
               ),
             ),
@@ -483,22 +505,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _selectedAllergyIds.add(allergy.id);
         _newAllergyController.clear();
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Allergie ajoutée : ${allergy.name}'),
-          backgroundColor: const Color(0xFF12372A),
-        ),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Allergy added: ${allergy.name}'),
+            backgroundColor: const Color(0xFF12372A),
+          ),
+        );
     } catch (error) {
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Impossible d\'ajouter l\'allergie : $error'),
-          backgroundColor: const Color(0xFFB53F2F),
-        ),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Unable to add allergy: $error'),
+            backgroundColor: const Color(0xFFB53F2F),
+          ),
+        );
     }
   }
 
@@ -538,7 +560,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Profil et allergies enregistrés.'),
+        content: Text('Profile and allergies saved.'),
         backgroundColor: Color(0xFF12372A),
       ),
     );
@@ -593,26 +615,28 @@ class _ProfileHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  user?.displayName ?? 'Profil non connecté',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                  user?.displayName ?? 'Profile not connected',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  user?.email ?? 'Connectez-vous pour synchroniser vos données',
+                  user?.email ?? 'Sign in to sync your data',
                   style: const TextStyle(color: AppColors.muted, fontSize: 13),
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.softBlue,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    user?.userTypeLabel ?? 'À définir',
+                    user?.userTypeLabel ?? 'Not set',
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,

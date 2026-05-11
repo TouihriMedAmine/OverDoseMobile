@@ -2,31 +2,39 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const background = Color(0xFFF9F5F0);
-  static const surface = Color(0xFFFFFCF8);
-  static const softBlue = Color(0xFFDEE8FF);
-  static const softBlueStrong = Color(0xFFBFD4FF);
-  static const softPeach = Color(0xFFF8AD7C);
-  static const softPink = Color(0xFFF4D9F5);
-  static const ink = Color(0xFF2C2940);
-  static const muted = Color(0xFF726B7F);
-  static const success = Color(0xFF1F8F62);
-  static const warning = Color(0xFFCE7B16);
-  static const danger = Color(0xFFC54C5D);
+  static const background = Color(0xFFF6F7FB);
+  static const surface = Color(0xFFFCFBFF);
+  static const surfaceStrong = Color(0xFFFFFFFF);
+  static const ink = Color(0xFF1E2230);
+  static const muted = Color(0xFF6F7485);
+
+  static const softBlue = Color(0xFFDCE9FF);
+  static const softBlueStrong = Color(0xFFBED4FF);
+  static const softPeach = Color(0xFFF7C8A6);
+  static const softPink = Color(0xFFF4DFF2);
+  static const softMint = Color(0xFFDDF6ED);
+
+  static const success = Color(0xFF1C8A63);
+  static const warning = Color(0xFFCC7A1D);
+  static const danger = Color(0xFFC45555);
+
+  static const glassBorder = Color(0x99FFFFFF);
+  static const glassFill = Color(0x99FFFFFF);
+  static const deepShadow = Color(0x1A1E2230);
 }
 
 BoxDecoration buildPageBackground() {
   return const BoxDecoration(
     gradient: LinearGradient(
       colors: [
-        Color(0xFFF0F4FA),
-        Color(0xFFFDFBF7),
-        Color(0xFFFDF6F9),
-        Color(0xFFE5EDFC),
+        Color(0xFFEFF4FF),
+        Color(0xFFF9F7F2),
+        Color(0xFFF5F7FF),
+        Color(0xFFE8F1FF),
       ],
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      stops: [0.0, 0.4, 0.7, 1.0],
+      stops: [0.0, 0.35, 0.7, 1.0],
     ),
   );
 }
@@ -37,11 +45,15 @@ class GlassCard extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(20),
     this.radius = 28,
+    this.borderAlpha = 0.7,
+    this.fillAlpha = 0.58,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final double radius;
+  final double borderAlpha;
+  final double fillAlpha;
 
   @override
   Widget build(BuildContext context) {
@@ -50,9 +62,9 @@ class GlassCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius),
         boxShadow: [
           BoxShadow(
-            color: AppColors.ink.withValues(alpha: 0.04),
-            blurRadius: 32,
-            offset: const Offset(0, 12),
+            color: AppColors.deepShadow,
+            blurRadius: 34,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
@@ -63,9 +75,12 @@ class GlassCard extends StatelessWidget {
           child: Container(
             padding: padding,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.55),
+              color: Colors.white.withValues(alpha: fillAlpha),
               borderRadius: BorderRadius.circular(radius),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.65), width: 1.2),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: borderAlpha),
+                width: 1.1,
+              ),
             ),
             child: child,
           ),
@@ -182,11 +197,11 @@ class RiskChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = switch (level.toUpperCase()) {
-      'CRITICAL' => (AppColors.danger, 'Critique'),
-      'HIGH' => (const Color(0xFFE36C58), 'Eleve'),
-      'MODERATE' => (AppColors.warning, 'Modere'),
-      'LOW' => (AppColors.success, 'Faible'),
-      _ => (AppColors.muted, 'Inconnu'),
+      'CRITICAL' => (AppColors.danger, 'Critical'),
+      'HIGH' => (const Color(0xFFE36C58), 'High'),
+      'MODERATE' => (AppColors.warning, 'Moderate'),
+      'LOW' => (AppColors.success, 'Low'),
+      _ => (AppColors.muted, 'Unknown'),
     };
 
     return Container(

@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'ui/ui_kit.dart';
 
 ThemeData buildAppTheme(Brightness brightness) {
-  final seed = AppColors.softPeach.withValues(alpha: 0.82);
+  final seed = AppColors.softBlueStrong.withValues(alpha: 0.92);
   final colorScheme = ColorScheme.fromSeed(
     seedColor: seed,
     brightness: brightness,
@@ -18,7 +18,7 @@ ThemeData buildAppTheme(Brightness brightness) {
     textTheme: GoogleFonts.spaceGroteskTextTheme(base.textTheme),
     colorScheme: colorScheme.copyWith(
       primary: AppColors.ink,
-      secondary: AppColors.softPeach,
+      secondary: AppColors.softBlueStrong,
       surface: AppColors.surface,
       onSurface: AppColors.ink,
     ),
@@ -34,13 +34,13 @@ ThemeData buildAppTheme(Brightness brightness) {
       iconTheme: const IconThemeData(color: AppColors.ink),
     ),
     cardTheme: CardThemeData(
-      color: Colors.white.withValues(alpha: 0.86),
+      color: Colors.white.withValues(alpha: 0.92),
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       margin: EdgeInsets.zero,
     ),
     chipTheme: base.chipTheme.copyWith(
-      backgroundColor: Colors.white.withValues(alpha: 0.82),
+      backgroundColor: Colors.white.withValues(alpha: 0.78),
       selectedColor: AppColors.ink,
       side: BorderSide(color: AppColors.ink.withValues(alpha: 0.08)),
       labelStyle: const TextStyle(color: AppColors.ink),
@@ -49,7 +49,7 @@ ThemeData buildAppTheme(Brightness brightness) {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Colors.white.withValues(alpha: 0.92),
+      fillColor: Colors.white.withValues(alpha: 0.94),
       labelStyle: const TextStyle(color: AppColors.muted),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
@@ -63,7 +63,7 @@ ThemeData buildAppTheme(Brightness brightness) {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide(color: seed, width: 1.2),
+        borderSide: BorderSide(color: seed, width: 1.3),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     ),

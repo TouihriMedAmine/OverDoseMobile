@@ -42,8 +42,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
-    _progressAnim = Tween<double>(begin: 0, end: 1 / _totalSteps)
-        .animate(CurvedAnimation(parent: _progressCtrl, curve: Curves.easeOutCubic));
+    _progressAnim = Tween<double>(begin: 0, end: 1 / _totalSteps).animate(
+      CurvedAnimation(parent: _progressCtrl, curve: Curves.easeOutCubic),
+    );
     _progressCtrl.forward();
   }
 
@@ -55,10 +56,13 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   void _animateProgress(int toStep) {
-    _progressAnim = Tween<double>(
-      begin: _step / _totalSteps,
-      end: toStep / _totalSteps,
-    ).animate(CurvedAnimation(parent: _progressCtrl, curve: Curves.easeOutCubic));
+    _progressAnim =
+        Tween<double>(
+          begin: _step / _totalSteps,
+          end: toStep / _totalSteps,
+        ).animate(
+          CurvedAnimation(parent: _progressCtrl, curve: Curves.easeOutCubic),
+        );
     _progressCtrl.forward(from: 0);
   }
 
@@ -115,7 +119,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Impossible de sauvegarder le profil.')),
+        const SnackBar(content: Text('Unable to save your profile.')),
       );
     }
   }
@@ -149,7 +153,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       child: Column(
                         children: [
                           Text(
-                            'Étape ${_step + 1} sur $_totalSteps',
+                            'Step ${_step + 1} of $_totalSteps',
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.muted,
@@ -163,10 +167,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                               animation: _progressAnim,
                               builder: (_, __) => LinearProgressIndicator(
                                 value: _progressAnim.value,
-                                backgroundColor:
-                                    AppColors.softBlue.withValues(alpha: 0.5),
+                                backgroundColor: AppColors.softBlue.withValues(
+                                  alpha: 0.5,
+                                ),
                                 valueColor: const AlwaysStoppedAnimation(
-                                    AppColors.ink),
+                                  AppColors.ink,
+                                ),
                                 minHeight: 5,
                               ),
                             ),
@@ -178,7 +184,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     TextButton(
                       onPressed: ctrl.isBusy ? null : ctrl.skipOnboarding,
                       child: const Text(
-                        'Passer',
+                        'Skip',
                         style: TextStyle(color: AppColors.muted),
                       ),
                     ),
@@ -240,19 +246,24 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     minimumSize: const Size.fromHeight(56),
                     backgroundColor: AppColors.ink,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18)),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
                   ),
                   child: ctrl.isBusy
                       ? const SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2.2, color: Colors.white),
+                            strokeWidth: 2.2,
+                            color: Colors.white,
+                          ),
                         )
                       : Text(
-                          _step < _totalSteps - 1 ? 'Continuer' : 'Commencer',
+                          _step < _totalSteps - 1 ? 'Continue' : 'Start',
                           style: const TextStyle(
-                              fontWeight: FontWeight.w700, fontSize: 16),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
                         ),
                 ),
               ),
@@ -264,25 +275,50 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 }
 
-// ─── Step 1 : Objectif ────────────────────────────────────────────────────────
+// ─── Step 1 : Objective ───────────────────────────────────────────────────────
 class _StepObjective extends StatelessWidget {
   const _StepObjective({required this.selected, required this.onSelect});
   final String selected;
   final ValueChanged<String> onSelect;
 
   static const _options = [
-    ('health', 'Santé globale', Icons.favorite_outline, 'Surveiller mes consommations au quotidien'),
-    ('sport', 'Sport & Performance', Icons.fitness_center_outlined, 'Optimiser mon alimentation sportive'),
-    ('skin', 'Peau & Cosmétiques', Icons.face_outlined, 'Choisir des produits sûrs pour ma peau'),
-    ('nutrition', 'Nutrition & Poids', Icons.restaurant_outlined, 'Contrôler mes apports nutritionnels'),
-    ('family', 'Famille & Enfants', Icons.family_restroom_outlined, 'Protéger toute la famille'),
+    (
+      'health',
+      'Overall health',
+      Icons.favorite_outline,
+      'Monitor day-to-day consumption',
+    ),
+    (
+      'sport',
+      'Sport & performance',
+      Icons.fitness_center_outlined,
+      'Optimize performance nutrition',
+    ),
+    (
+      'skin',
+      'Skin & cosmetics',
+      Icons.face_outlined,
+      'Choose safe products for my skin',
+    ),
+    (
+      'nutrition',
+      'Nutrition & weight',
+      Icons.restaurant_outlined,
+      'Control nutritional intake',
+    ),
+    (
+      'family',
+      'Family & kids',
+      Icons.family_restroom_outlined,
+      'Protect the whole family',
+    ),
   ];
 
   @override
   Widget build(BuildContext context) {
     return _StepWrapper(
-      question: 'Quel est votre objectif principal ?',
-      hint: 'Votre assistant adaptera ses recommandations en conséquence.',
+      question: 'What is your primary goal?',
+      hint: 'Your assistant will adapt its recommendations accordingly.',
       child: Column(
         children: _options.map((opt) {
           final isSelected = selected == opt.$1;
@@ -309,19 +345,39 @@ class _StepUserType extends StatelessWidget {
   final ValueChanged<String> onSelect;
 
   static const _options = [
-    ('adult', 'Adulte', Icons.person_outline, 'Usage général adulte'),
-    ('pregnant', 'Grossesse', Icons.pregnant_woman_outlined, 'Suivi grossesse et post-partum'),
-    ('child', 'Enfant', Icons.child_care_outlined, 'Produits adaptés aux enfants'),
-    ('sensitive_skin', 'Peau sensible', Icons.spa_outlined, 'Éviter les irritants cutanés'),
-    ('athlete', 'Sportif', Icons.directions_run_outlined, 'Performance et récupération'),
-    ('other', 'Autre', Icons.more_horiz_outlined, 'Profil personnalisé'),
+    ('adult', 'Adult', Icons.person_outline, 'General adult use'),
+    (
+      'pregnant',
+      'Pregnancy',
+      Icons.pregnant_woman_outlined,
+      'Pregnancy and postpartum support',
+    ),
+    (
+      'child',
+      'Child',
+      Icons.child_care_outlined,
+      'Products suitable for children',
+    ),
+    (
+      'sensitive_skin',
+      'Sensitive skin',
+      Icons.spa_outlined,
+      'Avoid skin irritants',
+    ),
+    (
+      'athlete',
+      'Athlete',
+      Icons.directions_run_outlined,
+      'Performance and recovery',
+    ),
+    ('other', 'Other', Icons.more_horiz_outlined, 'Custom profile'),
   ];
 
   @override
   Widget build(BuildContext context) {
     return _StepWrapper(
-      question: 'Décrivez votre profil de santé',
-      hint: 'Permet d\'adapter l\'analyse des risques à votre situation.',
+      question: 'Describe your health profile',
+      hint: 'Helps tailor risk analysis to your situation.',
       child: GridView.count(
         crossAxisCount: 2,
         shrinkWrap: true,
@@ -373,8 +429,8 @@ class _StepAllergiesState extends State<_StepAllergies> {
   @override
   Widget build(BuildContext context) {
     return _StepWrapper(
-      question: 'Avez-vous des allergies ou sensibilités ?',
-      hint: 'Optionnel — vous pouvez modifier ceci plus tard dans votre profil.',
+      question: 'Do you have allergies or sensitivities?',
+      hint: 'Optional - you can update this later in your profile.',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -386,8 +442,16 @@ class _StepAllergiesState extends State<_StepAllergies> {
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 child: FilterChip(
-                  label: Text(a.name),
+                  label: Text(
+                    a.name,
+                    style: TextStyle(
+                      color: sel ? Colors.white : AppColors.ink,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   selected: sel,
+                  selectedColor: AppColors.ink,
+                  checkmarkColor: Colors.white,
                   onSelected: (_) => widget.onToggle(a.id),
                 ),
               );
@@ -400,8 +464,8 @@ class _StepAllergiesState extends State<_StepAllergies> {
                 child: TextField(
                   controller: _ctrl,
                   decoration: const InputDecoration(
-                    labelText: 'Autre allergie ou sensibilité',
-                    hintText: 'Ex : kiwi, latex...',
+                    labelText: 'Other allergy or sensitivity',
+                    hintText: 'Example: kiwi, latex...',
                   ),
                   textInputAction: TextInputAction.done,
                   onSubmitted: (v) async {
@@ -446,13 +510,14 @@ class _StepNotifications extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _StepWrapper(
-      question: 'Souhaitez-vous être alerté(e) ?',
-      hint: 'Personnalisez vos préférences de notification.',
+      question: 'Do you want safety alerts?',
+      hint: 'Customize your notification preferences.',
       child: Column(
         children: [
           _ToggleOption(
-            title: 'Produits à risque élevé',
-            subtitle: 'Alerte si un produit scanné contient des ingrédients dangereux.',
+            title: 'High-risk products',
+            subtitle:
+                'Alert when a scanned product contains dangerous ingredients.',
             icon: Icons.warning_amber_rounded,
             color: AppColors.danger,
             value: notifyHighRisk,
@@ -460,8 +525,9 @@ class _StepNotifications extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _ToggleOption(
-            title: 'Ingrédients controversés',
-            subtitle: 'Signalement des additifs et conservateurs débattus.',
+            title: 'Controversial ingredients',
+            subtitle:
+                'Notify when debated additives and preservatives are detected.',
             icon: Icons.info_outline_rounded,
             color: AppColors.warning,
             value: notifyControversial,
@@ -485,47 +551,47 @@ class _StepConfirmation extends StatelessWidget {
   final int allergyCount;
 
   static const _objLabels = {
-    'health': 'Santé globale',
+    'health': 'Overall health',
     'sport': 'Sport & Performance',
-    'skin': 'Peau & Cosmétiques',
-    'nutrition': 'Nutrition & Poids',
-    'family': 'Famille & Enfants',
+    'skin': 'Skin & Cosmetics',
+    'nutrition': 'Nutrition & Weight',
+    'family': 'Family & Kids',
   };
 
   static const _typeLabels = {
-    'adult': 'Adulte',
-    'pregnant': 'Grossesse',
-    'child': 'Enfant',
-    'sensitive_skin': 'Peau sensible',
-    'athlete': 'Sportif',
-    'other': 'Autre',
+    'adult': 'Adult',
+    'pregnant': 'Pregnancy',
+    'child': 'Child',
+    'sensitive_skin': 'Sensitive skin',
+    'athlete': 'Athlete',
+    'other': 'Other',
   };
 
   @override
   Widget build(BuildContext context) {
     return _StepWrapper(
-      question: 'Votre profil est prêt ✓',
-      hint: 'Voici ce que nous avons retenu. Vous pouvez tout modifier plus tard.',
+      question: 'Your profile is ready ✓',
+      hint: 'Here is what we captured. You can update everything later.',
       child: Column(
         children: [
           _SummaryRow(
             icon: Icons.my_library_books_outlined,
-            label: 'Objectif',
-            value: _objLabels[objective] ?? 'Santé globale',
+            label: 'Goal',
+            value: _objLabels[objective] ?? 'Overall health',
           ),
           const SizedBox(height: 12),
           _SummaryRow(
             icon: Icons.person_outline,
-            label: 'Profil de santé',
-            value: _typeLabels[userType] ?? 'Adulte',
+            label: 'Health profile',
+            value: _typeLabels[userType] ?? 'Adult',
           ),
           const SizedBox(height: 12),
           _SummaryRow(
             icon: Icons.local_pharmacy_outlined,
-            label: 'Sensibilités',
+            label: 'Sensitivities',
             value: allergyCount == 0
-                ? 'Aucune renseignée'
-                : '$allergyCount sélectionnée(s)',
+                ? 'None selected'
+                : '$allergyCount selected',
           ),
           const SizedBox(height: 24),
           Container(
@@ -544,8 +610,12 @@ class _StepConfirmation extends StatelessWidget {
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Votre assistant s\'adapte au fil de vos scans pour affiner ses recommandations.',
-                    style: TextStyle(fontSize: 13, color: AppColors.ink, height: 1.4),
+                    'Your assistant adapts as you scan more products to refine recommendations.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.ink,
+                      height: 1.4,
+                    ),
                   ),
                 ),
               ],
@@ -640,7 +710,7 @@ class _ChoiceCard extends StatelessWidget {
                     color: AppColors.ink.withValues(alpha: 0.18),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
-                  )
+                  ),
                 ]
               : [],
         ),
@@ -655,8 +725,11 @@ class _ChoiceCard extends StatelessWidget {
                     : AppColors.softBlue,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon,
-                  color: selected ? Colors.white : AppColors.ink, size: 22),
+              child: Icon(
+                icon,
+                color: selected ? Colors.white : AppColors.ink,
+                size: 22,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -727,8 +800,11 @@ class _GridChoiceCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon,
-                color: selected ? Colors.white : AppColors.ink, size: 26),
+            Icon(
+              icon,
+              color: selected ? Colors.white : AppColors.ink,
+              size: 26,
+            ),
             const Spacer(),
             Text(
               title,
@@ -792,13 +868,22 @@ class _ToggleOption extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 14)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(subtitle,
-                    style: const TextStyle(
-                        color: AppColors.muted, fontSize: 12, height: 1.3)),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    height: 1.3,
+                  ),
+                ),
               ],
             ),
           ),
@@ -839,12 +924,18 @@ class _SummaryRow extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label,
-                  style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+              Text(
+                label,
+                style: const TextStyle(fontSize: 11, color: AppColors.muted),
+              ),
               const SizedBox(height: 2),
-              Text(value,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 15)),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
             ],
           ),
         ],

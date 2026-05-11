@@ -11,6 +11,7 @@ import '../models.dart';
 import '../ui/animated_widgets.dart';
 import '../ui/transitions.dart';
 import '../ui/ui_kit.dart';
+import '../ui/report_copy.dart';
 import 'product_card_widgets.dart';
 import 'scan_result_screen.dart';
 import 'segmentation_screen.dart';
@@ -44,19 +45,23 @@ class _ScanScreenState extends State<ScanScreen> {
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
         children: [
           HighlightBanner(
-            title: 'Scan intelligence',
+            title: 'AI Scan Studio',
             subtitle:
-                'Add one or more product photos, review the queue, then launch a medical-grade AI analysis.',
+                'Capture one or more products, then get a single safety review without exposing the internal scan flow.',
             icon: Icons.center_focus_strong_outlined,
-            colors: const [Color(0xFFDDEBFF), Color(0xFFFFE5D2)],
+            colors: const [Color(0xFFDCE9FF), Color(0xFFF7C8A6)],
           ),
           const SizedBox(height: 16),
-          _AdvancedScanHero(
+          _ScanStudioHero(
             queueCount: _queue.length,
             isPicking: _isPicking || controller.isBusy || _isRunningScan,
+            isRunningScan: _isRunningScan,
             onCamera: () => _addToQueue(ImageSource.camera),
-            onGallery: () => _addToQueue(ImageSource.gallery, allowMultiple: true),
-            onAnalyze: _queue.isEmpty || _isRunningScan ? null : _runQueueAnalysis,
+            onGallery: () =>
+                _addToQueue(ImageSource.gallery, allowMultiple: true),
+            onAnalyze: _queue.isEmpty || _isRunningScan
+                ? null
+                : _runQueueAnalysis,
             onClear: _queue.isEmpty || _isRunningScan ? null : _clearQueue,
           ),
           const SizedBox(height: 16),
@@ -69,24 +74,25 @@ class _ScanScreenState extends State<ScanScreen> {
             _RecentReportsPanel(
               history: history,
               onOpen: _openHistoryReport,
-              onDelete: _isRunningScan ? null : (record) => controller.removeScanReport(record.id),
+              onDelete: _isRunningScan
+                  ? null
+                  : (record) => controller.removeScanReport(record.id),
             ),
             const SizedBox(height: 16),
           ],
-          const _HowItWorksCard(),
         ],
       ),
     );
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    // La caméra n'est pas disponible sur Flutter Web
+    // Camera not available on Flutter Web
     if (kIsWeb && source == ImageSource.camera) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'La caméra n\'est pas disponible sur navigateur. Utilisez la galerie.',
+              'Camera is not available in the browser. Use Gallery instead.',
             ),
             backgroundColor: Color(0xFF8B6914),
           ),
@@ -106,7 +112,7 @@ class _ScanScreenState extends State<ScanScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors de la sélection : ${e.toString()}'),
+            content: Text('Unable to access media: ${e.toString()}'),
             backgroundColor: const Color(0xFFB53F2F),
           ),
         );
@@ -149,7 +155,7 @@ class _ScanScreenState extends State<ScanScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors de la sélection : ${error.toString()}'),
+            content: Text('Unable to access media: ${error.toString()}'),
             backgroundColor: const Color(0xFFB53F2F),
           ),
         );
@@ -190,10 +196,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
     try {
       for (final image in _queue) {
-        final response = await _runProcessingFlow(
-          image,
-          () => controller.quickScanImage(image),
-        );
+        final response = await controller.quickScanImage(image);
 
         final payload = {
           ...(response.analysis ?? <String, dynamic>{}),
@@ -214,7 +217,8 @@ class _ScanScreenState extends State<ScanScreen> {
         results: results,
         sourceImagePath: _queue.first.path,
         title: results.isNotEmpty
-            ? (results.first['name']?.toString() ?? results.first['product_name']?.toString())
+            ? (results.first['name']?.toString() ??
+                  results.first['product_name']?.toString())
             : null,
       );
 
@@ -226,7 +230,7 @@ class _ScanScreenState extends State<ScanScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors du scan : ${error.toString()}'),
+            content: Text('Scan failed: ${error.toString()}'),
             backgroundColor: const Color(0xFFB53F2F),
           ),
         );
@@ -238,42 +242,20 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
-  Future<T> _runProcessingFlow<T>(
-    XFile image,
-    Future<T> Function() action,
-  ) async {
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => _AiProcessingDialog(imageFile: image),
-    );
-
-    try {
-      return await action();
-    } finally {
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
-    }
-  }
-
   Future<void> _openSegmentationFlow() async {
     final image = _selectedImage;
     if (image == null) return;
 
     List<dynamic>? result;
     try {
-      result = await _runWithLoading<List<dynamic>?>(
-        'Préparation de la segmentation...',
-        () => Navigator.of(context).push<List<dynamic>>(
-          SlideUpRoute(builder: (_) => SegmentationScreen(imageFile: image)),
-        ),
+      result = await Navigator.of(context).push<List<dynamic>>(
+        SlideUpRoute(builder: (_) => SegmentationScreen(imageFile: image)),
       );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur de segmentation : ${e.toString()}'),
+            content: Text('Selection failed: ${e.toString()}'),
             backgroundColor: const Color(0xFFB53F2F),
           ),
         );
@@ -294,10 +276,7 @@ class _ScanScreenState extends State<ScanScreen> {
 
     final controller = context.read<AppController>();
     try {
-      final response = await _runWithLoading(
-        'Analyse en cours...',
-        () => controller.quickScanImage(image),
-      );
+      final response = await controller.quickScanImage(image);
       if (!mounted) return;
 
       final payload = [
@@ -317,28 +296,10 @@ class _ScanScreenState extends State<ScanScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors du scan : ${e.toString()}'),
+            content: Text('Scan failed: ${e.toString()}'),
             backgroundColor: const Color(0xFFB53F2F),
           ),
         );
-      }
-    }
-  }
-
-  Future<T> _runWithLoading<T>(
-    String title,
-    Future<T> Function() action,
-  ) async {
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => _LoadingDialog(title: title),
-    );
-    try {
-      return await action();
-    } finally {
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
       }
     }
   }
@@ -406,7 +367,7 @@ class _ScanHero extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         const Text(
-                          'Prenez une photo ou importez une image',
+                          'Capture a product photo or import one',
                           style: TextStyle(
                             color: AppColors.muted,
                             fontWeight: FontWeight.w500,
@@ -425,7 +386,7 @@ class _ScanHero extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: (isPicking || kIsWeb) ? null : onCamera,
                   icon: const Icon(Icons.camera_alt_outlined),
-                  label: Text(kIsWeb ? 'Camera indisponible' : 'Camera'),
+                  label: Text(kIsWeb ? 'Camera unavailable' : 'Camera'),
                 ),
               ),
               const SizedBox(width: 12),
@@ -433,7 +394,7 @@ class _ScanHero extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: isPicking ? null : onGallery,
                   icon: const Icon(Icons.photo_library_outlined),
-                  label: const Text('Galerie'),
+                  label: const Text('Gallery'),
                 ),
               ),
             ],
@@ -442,13 +403,13 @@ class _ScanHero extends StatelessWidget {
           FilledButton.icon(
             onPressed: onAnalyze,
             icon: const Icon(Icons.grid_view_rounded),
-            label: const Text('Segmenter et selectionner'),
+            label: const Text('Select products'),
           ),
           const SizedBox(height: 10),
           FilledButton.tonalIcon(
             onPressed: onQuickScan,
             icon: const Icon(Icons.flash_on_outlined),
-            label: const Text('Analyse rapide'),
+            label: const Text('Quick scan'),
           ),
         ],
       ),
@@ -456,47 +417,11 @@ class _ScanHero extends StatelessWidget {
   }
 }
 
-class _HowItWorksCard extends StatelessWidget {
-  const _HowItWorksCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: const [
-          SectionTitle(
-            title: 'Flux de scan',
-            subtitle: 'Queue multi-produit, extraction guidée, puis analyse IA.',
-          ),
-          SizedBox(height: 12),
-          _StepItem(
-            index: '1',
-            title: 'Capture ou import',
-            subtitle: 'Ajoutez une ou plusieurs photos depuis la caméra ou la galerie.',
-          ),
-          SizedBox(height: 10),
-          _StepItem(
-            index: '2',
-            title: 'Queue contrôlée',
-            subtitle: 'Retirez les produits inutiles avant de lancer l\'analyse.',
-          ),
-          SizedBox(height: 10),
-          _StepItem(
-            index: '3',
-            title: 'Analyse IA',
-            subtitle: 'Le moteur passe de l\'extraction des ingrédients au rapport médical final.',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AdvancedScanHero extends StatelessWidget {
-  const _AdvancedScanHero({
+class _ScanStudioHero extends StatelessWidget {
+  const _ScanStudioHero({
     required this.queueCount,
     required this.isPicking,
+    required this.isRunningScan,
     required this.onCamera,
     required this.onGallery,
     required this.onAnalyze,
@@ -505,6 +430,7 @@ class _AdvancedScanHero extends StatelessWidget {
 
   final int queueCount;
   final bool isPicking;
+  final bool isRunningScan;
   final VoidCallback onCamera;
   final VoidCallback onGallery;
   final VoidCallback? onAnalyze;
@@ -519,13 +445,16 @@ class _AdvancedScanHero extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 46,
-                height: 46,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   color: AppColors.ink,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.coronavirus_outlined, color: Colors.white),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -533,30 +462,36 @@ class _AdvancedScanHero extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'OVERDOSE AI scan lab',
+                      'Overdose AI Lab',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 2),
                     const Text(
-                      'Medical-grade analysis pipeline for one or many products.',
+                      'Capture products and launch a single trusted AI safety review.',
                       style: TextStyle(color: AppColors.muted, height: 1.35),
                     ),
                   ],
                 ),
               ),
-              _ScanStatusChip(label: '$queueCount queued'),
+              _ScanStatusChip(
+                label: isRunningScan ? 'Analyzing' : '$queueCount queued',
+              ),
             ],
           ),
+          if (isRunningScan) ...[
+            const SizedBox(height: 14),
+            const LinearProgressIndicator(minHeight: 4),
+          ],
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppColors.softBlue.withValues(alpha: 0.42),
-                  const Color(0xFFFFE1CC).withValues(alpha: 0.45),
+                  AppColors.softBlue.withValues(alpha: 0.45),
+                  AppColors.softPeach.withValues(alpha: 0.4),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -566,37 +501,34 @@ class _AdvancedScanHero extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 68,
-                  height: 68,
+                  width: 64,
+                  height: 64,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Icon(Icons.memory_rounded, size: 34, color: AppColors.ink),
+                  child: const Icon(
+                    Icons.center_focus_strong,
+                    size: 30,
+                    color: AppColors.ink,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'AI pipeline ready',
-                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                      Text(
+                        'Ready for analysis',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                        ),
                       ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Add products, then let extraction and investigation run in sequence.',
+                      SizedBox(height: 6),
+                      Text(
+                        ReportCopy.scanAnalysisHint(),
                         style: TextStyle(color: AppColors.muted, height: 1.35),
-                      ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: const [
-                          const _ScanStatusChip(label: 'Extraction'),
-                          const _ScanStatusChip(label: 'AI review'),
-                          const _ScanStatusChip(label: 'History saved'),
-                        ],
                       ),
                     ],
                   ),
@@ -670,9 +602,9 @@ class _QueuePanel extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           if (items.isEmpty)
-            const EmptyStateCard(
+            EmptyStateCard(
               title: 'Queue empty',
-              message: 'Add one or more product photos to build a scan batch.',
+              message: ReportCopy.queueEmpty(),
               icon: Icons.queue_outlined,
             )
           else
@@ -682,7 +614,9 @@ class _QueuePanel extends StatelessWidget {
                 child: _QueuedScanItem(
                   file: entry.value,
                   index: entry.key,
-                  onRemove: onRemove == null ? null : () => onRemove!(entry.key),
+                  onRemove: onRemove == null
+                      ? null
+                      : () => onRemove!(entry.key),
                 ),
               ),
             ),
@@ -706,7 +640,9 @@ class _QueuedScanItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final image = resolveProductImageProvider(file.path);
-    final fileName = file.name.trim().isNotEmpty ? file.name : 'Queued product ${index + 1}';
+    final fileName = file.name.trim().isNotEmpty
+        ? file.name
+        : 'Queued product ${index + 1}';
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -732,7 +668,10 @@ class _QueuedScanItem extends StatelessWidget {
                     : DecorationImage(image: image, fit: BoxFit.cover),
               ),
               child: image == null
-                  ? const Icon(Icons.document_scanner_outlined, color: AppColors.ink)
+                  ? const Icon(
+                      Icons.document_scanner_outlined,
+                      color: AppColors.ink,
+                    )
                   : null,
             ),
           ),
@@ -749,8 +688,12 @@ class _QueuedScanItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Waiting in queue for ingredient extraction and AI review.',
-                  style: TextStyle(color: AppColors.muted, height: 1.35, fontSize: 12),
+                  'Ready for AI ingredient extraction and safety review.',
+                  style: TextStyle(
+                    color: AppColors.muted,
+                    height: 1.35,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -785,62 +728,72 @@ class _RecentReportsPanel extends StatelessWidget {
         children: [
           const SectionTitle(
             title: 'Recent scan reports',
-            subtitle: 'Reopen older AI reports any time.',
+            subtitle: 'Reopen previous AI safety reviews anytime.',
           ),
           const SizedBox(height: 14),
-          ...history.take(4).map(
-            (record) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: AppColors.softBlue.withValues(alpha: 0.36),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(Icons.analytics_outlined, color: AppColors.ink),
+          ...history
+              .take(4)
+              .map(
+                (record) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(18),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            record.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w700),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: AppColors.softBlue.withValues(alpha: 0.36),
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                          const SizedBox(height: 3),
-                          Text(
-                            '${record.results.length} result(s) • ${record.createdAt.toLocal().toString().substring(0, 16)}',
-                            style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                          child: const Icon(
+                            Icons.analytics_outlined,
+                            color: AppColors.ink,
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                record.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                '${record.results.length} result(s) • ${record.createdAt.toLocal().toString().substring(0, 16)}',
+                                style: const TextStyle(
+                                  color: AppColors.muted,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => onOpen(record),
+                          child: const Text('Open'),
+                        ),
+                        if (onDelete != null)
+                          IconButton(
+                            onPressed: () => onDelete!(record),
+                            icon: const Icon(Icons.delete_outline_rounded),
+                          ),
+                      ],
                     ),
-                    TextButton(
-                      onPressed: () => onOpen(record),
-                      child: const Text('Open'),
-                    ),
-                    if (onDelete != null)
-                      IconButton(
-                        onPressed: () => onDelete!(record),
-                        icon: const Icon(Icons.delete_outline_rounded),
-                      ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
         ],
       ),
     );
@@ -905,7 +858,10 @@ class _AiProcessingDialogState extends State<_AiProcessingDialog> {
                     color: AppColors.ink,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(Icons.coronavirus_outlined, color: Colors.white),
+                  child: const Icon(
+                    Icons.coronavirus_outlined,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 const Text(
@@ -922,7 +878,8 @@ class _AiProcessingDialogState extends State<_AiProcessingDialog> {
               borderRadius: BorderRadius.circular(22),
               child: AspectRatio(
                 aspectRatio: 1.6,
-                child: resolveProductImageProvider(widget.imageFile.path) == null
+                child:
+                    resolveProductImageProvider(widget.imageFile.path) == null
                     ? Container(
                         color: AppColors.softBlue.withValues(alpha: 0.24),
                         child: const Center(child: CircularProgressIndicator()),
@@ -931,7 +888,9 @@ class _AiProcessingDialogState extends State<_AiProcessingDialog> {
                         fit: StackFit.expand,
                         children: [
                           Image(
-                            image: resolveProductImageProvider(widget.imageFile.path)!,
+                            image: resolveProductImageProvider(
+                              widget.imageFile.path,
+                            )!,
                             fit: BoxFit.cover,
                           ),
                           Container(
@@ -951,7 +910,7 @@ class _AiProcessingDialogState extends State<_AiProcessingDialog> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'The first pass reads ingredients, then the AI layers in chemical reasoning.',
+              'We extract ingredients first, then layer in AI safety reasoning.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.muted, height: 1.4),
             ),
@@ -1042,10 +1001,10 @@ class _LoadingDialog extends StatefulWidget {
 class _LoadingDialogState extends State<_LoadingDialog> {
   int _step = 0;
   static const _messages = [
-    'Extraction des ingredients',
-    'Analyse des risques',
-    'Adaptation au profil',
-    'Recherche d alternatives',
+    'Extracting ingredients',
+    'Assessing risk signals',
+    'Adapting to your profile',
+    'Looking for safer options',
   ];
 
   @override

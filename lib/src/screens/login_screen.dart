@@ -5,11 +5,7 @@ import '../app_controller.dart';
 import '../ui/ui_kit.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({
-    super.key,
-    this.initialRegister = false,
-    this.onBack,
-  });
+  const LoginScreen({super.key, this.initialRegister = false, this.onBack});
 
   final bool initialRegister;
   final VoidCallback? onBack;
@@ -68,21 +64,21 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextButton(
                           onPressed: controller.isBusy
                               ? null
-                              : () => setState(() => _showRegister = !_showRegister),
-                          child: Text(
-                            _showRegister ? 'Connexion' : 'Inscription',
-                          ),
+                              : () => setState(
+                                  () => _showRegister = !_showRegister,
+                                ),
+                          child: Text(_showRegister ? 'Sign in' : 'Sign up'),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     HighlightBanner(
                       title: _showRegister
-                          ? 'Creez votre espace personnel'
-                          : 'Bon retour sur OverDose',
+                          ? 'Create your personal space'
+                          : 'Welcome back to OverDose',
                       subtitle: _showRegister
-                          ? 'Un compte unique pour scanner, memoriser vos produits et suivre vos tendances sante.'
-                          : 'Connectez-vous avec votre email pour retrouver votre dashboard, vos produits et vos recommandations.',
+                          ? 'One account to scan, save products, and track your health trends.'
+                          : 'Sign in with your email to access your dashboard, products, and recommendations.',
                       icon: _showRegister
                           ? Icons.person_add_alt_1_rounded
                           : Icons.lock_open_rounded,
@@ -120,16 +116,17 @@ class _LoginScreenState extends State<LoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SectionTitle(
-              title: 'Connexion',
-              subtitle: 'L identifiant est votre email pour l instant.',
+              title: 'Sign in',
+              subtitle: 'Use your email as your account identifier.',
             ),
             const SizedBox(height: 18),
             TextFormField(
               controller: _loginEmailController,
               decoration: const InputDecoration(labelText: 'Email'),
               keyboardType: TextInputType.emailAddress,
-              validator: (value) =>
-                  (value == null || value.trim().isEmpty) ? 'Email requis' : null,
+              validator: (value) => (value == null || value.trim().isEmpty)
+                  ? 'Email is required'
+                  : null,
             ),
             const SizedBox(height: 14),
             TextFormField(
@@ -137,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
               decoration: const InputDecoration(labelText: 'Mot de passe'),
               obscureText: true,
               validator: (value) => (value == null || value.isEmpty)
-                  ? 'Mot de passe requis'
+                  ? 'Password is required'
                   : null,
             ),
             const SizedBox(height: 18),
@@ -151,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: 18,
                         child: CircularProgressIndicator(strokeWidth: 2.2),
                       )
-                    : const Text('Se connecter'),
+                    : const Text('Sign in'),
               ),
             ),
           ],
@@ -171,8 +168,8 @@ class _LoginScreenState extends State<LoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SectionTitle(
-              title: 'Creer un compte',
-              subtitle: 'Formulaire simple, sans surcharge inutile.',
+              title: 'Create account',
+              subtitle: 'Simple form with only essential fields.',
             ),
             const SizedBox(height: 18),
             Row(
@@ -180,9 +177,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: _firstNameController,
-                    decoration: const InputDecoration(labelText: 'Prenom'),
-                    validator: (value) => (value == null || value.trim().isEmpty)
-                        ? 'Prenom requis'
+                    decoration: const InputDecoration(labelText: 'First name'),
+                    validator: (value) =>
+                        (value == null || value.trim().isEmpty)
+                        ? 'First name is required'
                         : null,
                   ),
                 ),
@@ -190,9 +188,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: _lastNameController,
-                    decoration: const InputDecoration(labelText: 'Nom'),
-                    validator: (value) => (value == null || value.trim().isEmpty)
-                        ? 'Nom requis'
+                    decoration: const InputDecoration(labelText: 'Last name'),
+                    validator: (value) =>
+                        (value == null || value.trim().isEmpty)
+                        ? 'Last name is required'
                         : null,
                   ),
                 ),
@@ -203,25 +202,27 @@ class _LoginScreenState extends State<LoginScreen> {
               controller: _emailController,
               decoration: const InputDecoration(labelText: 'Email'),
               keyboardType: TextInputType.emailAddress,
-              validator: (value) =>
-                  (value == null || value.trim().isEmpty) ? 'Email requis' : null,
+              validator: (value) => (value == null || value.trim().isEmpty)
+                  ? 'Email is required'
+                  : null,
             ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'Mot de passe'),
+              decoration: const InputDecoration(labelText: 'Password'),
               obscureText: true,
-              validator: (value) =>
-                  (value == null || value.length < 6) ? '6 caracteres minimum' : null,
+              validator: (value) => (value == null || value.length < 6)
+                  ? 'Minimum 6 characters'
+                  : null,
             ),
             const SizedBox(height: 14),
             DropdownButtonFormField<String>(
               initialValue: _gender,
-              decoration: const InputDecoration(labelText: 'Genre'),
+              decoration: const InputDecoration(labelText: 'Gender'),
               items: const [
-                DropdownMenuItem(value: 'male', child: Text('Homme')),
-                DropdownMenuItem(value: 'female', child: Text('Femme')),
-                DropdownMenuItem(value: 'other', child: Text('Autre')),
+                DropdownMenuItem(value: 'male', child: Text('Male')),
+                DropdownMenuItem(value: 'female', child: Text('Female')),
+                DropdownMenuItem(value: 'other', child: Text('Other')),
               ],
               onChanged: (value) => setState(() => _gender = value ?? 'other'),
             ),
@@ -231,7 +232,7 @@ class _LoginScreenState extends State<LoginScreen> {
               icon: const Icon(Icons.cake_outlined),
               label: Text(
                 _dateOfBirth == null
-                    ? 'Date de naissance'
+                    ? 'Date of birth'
                     : _dateOfBirth!.toIso8601String().split('T').first,
               ),
             ),
@@ -246,7 +247,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: 18,
                         child: CircularProgressIndicator(strokeWidth: 2.2),
                       )
-                    : const Text('Creer le compte'),
+                    : const Text('Create account'),
               ),
             ),
           ],

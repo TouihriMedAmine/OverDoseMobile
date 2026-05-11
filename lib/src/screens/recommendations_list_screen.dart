@@ -67,7 +67,7 @@ class _RecommendationsListScreenState extends State<RecommendationsListScreen> {
                         child: Padding(
                           padding: const EdgeInsets.all(20),
                           child: EmptyStateCard(
-                            title: 'Recherche indisponible',
+                            title: 'Search unavailable',
                             message: snapshot.error.toString(),
                             icon: Icons.travel_explore_outlined,
                             action: FilledButton.tonal(
@@ -76,7 +76,7 @@ class _RecommendationsListScreenState extends State<RecommendationsListScreen> {
                                     .read<AppController>()
                                     .searchAlternatives(widget.product);
                               }),
-                              child: const Text('Reessayer'),
+                              child: const Text('Retry'),
                             ),
                           ),
                         ),
@@ -89,20 +89,20 @@ class _RecommendationsListScreenState extends State<RecommendationsListScreen> {
                     return ListView(
                       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
                       children: [
-                        HighlightBanner(
-                          title: widget.product.name,
-                          subtitle:
-                              'Suggestions pour remplacer un produit ${widget.product.riskLevel.toLowerCase()} ou simplement comparer de meilleures options.',
-                          icon: Icons.eco_outlined,
-                          colors: const [AppColors.softBlue, AppColors.softPeach],
-                        ),
+                          HighlightBanner(
+                            title: widget.product.name,
+                            subtitle:
+                                'Alternatives that may reduce ${widget.product.riskLevel.toLowerCase()} risk or offer a safer comparison.',
+                            icon: Icons.eco_outlined,
+                            colors: const [AppColors.softBlue, AppColors.softPeach],
+                          ),
                         const SizedBox(height: 16),
                         if (suggestions.isEmpty)
                           EmptyStateCard(
-                            title: 'Aucune alternative exploitable',
+                            title: 'No usable alternatives yet',
                             message: response.errors.isNotEmpty
                                 ? response.errors.join(' | ')
-                                : 'Le backend n a renvoye aucune suggestion lisible pour ce produit.',
+                                : 'The analysis service did not return a usable suggestion for this product.',
                             icon: Icons.search_off_rounded,
                           )
                         else
@@ -128,15 +128,15 @@ class _RecommendationsListScreenState extends State<RecommendationsListScreen> {
                                       ),
                                     ],
                                     const SizedBox(height: 10),
-                                    Text(item.reason),
-                                    if ((item.price ?? '').isNotEmpty) ...[
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        'Prix: ${item.price}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.ink,
-                                        ),
+                                      Text(item.reason),
+                                      if ((item.price ?? '').isNotEmpty) ...[
+                                        const SizedBox(height: 10),
+                                        Text(
+                                          'Price: ${item.price}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.ink,
+                                          ),
                                       ),
                                     ],
                                   ],

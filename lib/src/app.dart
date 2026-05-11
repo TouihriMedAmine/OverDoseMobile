@@ -53,10 +53,7 @@ class AppGate extends StatelessWidget {
       switchInCurve: Curves.easeOutCubic,
       switchOutCurve: Curves.easeInCubic,
       transitionBuilder: (child, animation) {
-        return FadeTransition(
-          opacity: animation,
-          child: child,
-        );
+        return FadeTransition(opacity: animation, child: child);
       },
       child: page,
     );
@@ -116,8 +113,10 @@ class _BootScreenState extends State<_BootScreen>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
-    _scaleAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.elasticOut)
-        .drive(Tween(begin: 0.6, end: 1.0));
+    _scaleAnim = CurvedAnimation(
+      parent: _animCtrl,
+      curve: Curves.elasticOut,
+    ).drive(Tween(begin: 0.6, end: 1.0));
     _fadeAnim = CurvedAnimation(
       parent: _animCtrl,
       curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
@@ -180,11 +179,8 @@ class _BootScreenState extends State<_BootScreen>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Votre assistant santé intelligent',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.muted,
-                  ),
+                  'Your intelligent health assistant',
+                  style: TextStyle(fontSize: 14, color: AppColors.muted),
                 ),
                 const SizedBox(height: 36),
                 SizedBox(

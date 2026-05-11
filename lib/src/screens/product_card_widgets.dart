@@ -32,6 +32,7 @@ class ProductInsightCard extends StatelessWidget {
     required this.status,
     this.subtitle,
     this.imageUrl,
+    this.imageAspectRatio = 1.42,
     this.previewAlternatives = const [],
     this.footer,
     this.onTap,
@@ -41,6 +42,7 @@ class ProductInsightCard extends StatelessWidget {
   final String title;
   final String? subtitle;
   final String? imageUrl;
+  final double imageAspectRatio;
   final Widget status;
   final List<String> previewAlternatives;
   final Widget? footer;
@@ -49,36 +51,48 @@ class ProductInsightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageProvider = resolveProductImageProvider(imageUrl);
     final card = GlassCard(
       padding: EdgeInsets.zero,
-      radius: 28,
+      radius: 30,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AspectRatio(
-            aspectRatio: 1.42,
+            aspectRatio: imageAspectRatio,
             child: Container(
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFFF3F7FF), Color(0xFFFFF3EC)],
+                  colors: [Color(0xFFEAF2FF), Color(0xFFFCEBDD)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                image: resolveProductImageProvider(imageUrl) == null
+                image: imageProvider == null
                     ? null
-                    : DecorationImage(
-                        image: resolveProductImageProvider(imageUrl)!,
-                        fit: BoxFit.cover,
-                      ),
+                    : DecorationImage(image: imageProvider, fit: BoxFit.cover),
               ),
               child: Stack(
                 children: [
-                  if (resolveProductImageProvider(imageUrl) == null)
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.42),
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (imageProvider == null)
                     Center(
                       child: Icon(
                         leadingIcon ?? Icons.science_outlined,
-                        size: 48,
-                        color: AppColors.ink.withValues(alpha: 0.72),
+                        size: 52,
+                        color: AppColors.ink.withValues(alpha: 0.7),
                       ),
                     ),
                   Positioned(
@@ -89,8 +103,74 @@ class ProductInsightCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         status,
-                        const SizedBox(width: 8),
+                        if (leadingIcon != null)
+                          Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.22),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              leadingIcon,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
                       ],
+                    ),
+                  ),
+                  Positioned(
+                    left: 14,
+                    right: 14,
+                    bottom: 14,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            height: 1.18,
+                          ),
+                        ),
+                        if (subtitle != null &&
+                            subtitle!.trim().isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            subtitle!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.82),
+                              fontSize: 12,
+                              height: 1.25,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      height: 80,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.black.withValues(alpha: 0.0),
+                            Colors.black.withValues(alpha: 0.35),
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -98,35 +178,12 @@ class ProductInsightCard extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    height: 1.15,
-                  ),
-                ),
-                if (subtitle != null && subtitle!.trim().isNotEmpty) ...[
-                  const SizedBox(height: 5),
-                  Text(
-                    subtitle!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.muted,
-                      fontSize: 12,
-                      height: 1.35,
-                    ),
-                  ),
-                ],
                 if (previewAlternatives.isNotEmpty) ...[
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 2),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -139,7 +196,7 @@ class ProductInsightCard extends StatelessWidget {
                               vertical: 5,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.softBlue.withValues(alpha: 0.32),
+                              color: AppColors.softBlue.withValues(alpha: 0.28),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
@@ -157,10 +214,7 @@ class ProductInsightCard extends StatelessWidget {
                         .toList(),
                   ),
                 ],
-                if (footer != null) ...[
-                  const SizedBox(height: 14),
-                  footer!,
-                ],
+                if (footer != null) ...[const SizedBox(height: 14), footer!],
               ],
             ),
           ),

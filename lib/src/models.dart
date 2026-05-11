@@ -4,9 +4,9 @@ enum ProductCategory { food, cosmetic, unknown }
 
 extension ProductCategoryX on ProductCategory {
   String get label => switch (this) {
-    ProductCategory.food => 'Alimentaire',
-    ProductCategory.cosmetic => 'Cosmetique',
-    ProductCategory.unknown => 'Autre',
+    ProductCategory.food => 'Food',
+    ProductCategory.cosmetic => 'Cosmetics',
+    ProductCategory.unknown => 'Other',
   };
 
   String get recommendationType => switch (this) {
@@ -71,11 +71,29 @@ class AppUser {
     return combined.isEmpty ? email : combined;
   }
 
-  String get userTypeLabel =>
-      userType.trim().isEmpty ? 'A definir' : userType.replaceAll('_', ' ').sentenceCase;
+  String get userTypeLabel => userType.trim().isEmpty
+      ? 'Not set'
+      : userType.replaceAll('_', ' ').sentenceCase;
 
   bool get hasOnboardingData =>
-      userType.trim().isNotEmpty || aiReport.isNotEmpty || notes.trim().isNotEmpty;
+      userType.trim().isNotEmpty ||
+      aiReport.isNotEmpty ||
+      notes.trim().isNotEmpty;
+
+  String? get personalizedSummary => _firstNonEmpty([
+    aiReport['personalized_summary'],
+    aiReport['user_summary'],
+    aiReport['profile_summary'],
+    aiReport['summary'],
+    aiReport['overall_assessment'],
+  ]);
+
+  List<String> get personalizedHighlights => _extractStringList([
+    aiReport['key_warnings'],
+    aiReport['key_findings'],
+    aiReport['highlights'],
+    aiReport['recommendations'],
+  ]);
 
   AppUser copyWith({
     String? firstName,
@@ -191,11 +209,11 @@ class ProductItem {
 
   String get decisionLabel {
     return switch (userDecision) {
-      'approved' => 'Adopte',
-      'saved' => 'Sauvegarde',
-      'pending' => 'A revoir',
-      'rejected' => 'Rejete',
-      _ => 'Sans decision',
+      'approved' => 'Adopted',
+      'saved' => 'Saved',
+      'pending' => 'Review',
+      'rejected' => 'Rejected',
+      _ => 'No decision',
     };
   }
 
@@ -203,8 +221,8 @@ class ProductItem {
     return switch (extractionMethod) {
       'barcode' => 'Barcode',
       'lens' => 'Vision',
-      'unknown' => 'Mixte',
-      _ => extractionMethod.trim().isEmpty ? 'Non precise' : extractionMethod,
+      'unknown' => 'Mixed',
+      _ => extractionMethod.trim().isEmpty ? 'Not specified' : extractionMethod,
     };
   }
 
@@ -249,14 +267,15 @@ class ProductItem {
     ]);
   }
 
-  String get aiSummary => _firstNonEmpty([
+  String get aiSummary =>
+      _firstNonEmpty([
         investigationReport['summary']?.toString(),
         investigationReport['ai_summary']?.toString(),
         investigationReport['overview']?.toString(),
         filteringReport['summary']?.toString(),
         filteringReport['overview']?.toString(),
       ]) ??
-      'Aucune synthèse explicite n\'a été fournie pour ce produit.';
+      'No explicit AI summary has been provided for this product yet.';
 
   double? get confidenceScore => _extractConfidence([
     investigationReport['confidence'],
@@ -331,6 +350,11 @@ class CumulativeSummary {
     return value is Map ? Map<String, dynamic>.from(value) : const {};
   }
 
+  Map<String, dynamic> get scoringAnalysis {
+    final value = raw['scoring_analysis'];
+    return value is Map ? Map<String, dynamic>.from(value) : const {};
+  }
+
   // ─── Product verdicts ──────────────────────────────────────────────────────
   List<Map<String, dynamic>> get productVerdicts {
     final value = raw['product_verdicts'];
@@ -342,9 +366,25 @@ class CumulativeSummary {
   }
 
   List<Map<String, dynamic>> get productRiskResults {
-    final scoring = raw['scoring_analysis'];
-    if (scoring is! Map) return const [];
-    final results = scoring['product_risk_results'];
+    final results = scoringAnalysis['product_risk_results'];
+    if (results is! List) return const [];
+    return results
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  List<Map<String, dynamic>> get recurrenceRisks {
+    final results = scoringAnalysis['recurrence_risks'];
+    if (results is! List) return const [];
+    return results
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
+
+  List<Map<String, dynamic>> get rankedProducts {
+    final results = scoringAnalysis['ranked_products'];
     if (results is! List) return const [];
     return results
         .whereType<Map>()
@@ -371,8 +411,33 @@ class CumulativeSummary {
     return const [];
   }
 
+  Map<String, dynamic> get organGlobalAnalysis {
+    final val = globalSummary['organ_global_analysis'];
+    return val is Map ? Map<String, dynamic>.from(val) : const {};
+  }
+
+  List<Map<String, dynamic>> get combinationRisks {
+    final val = raw['combination_risks'];
+    if (val is List) {
+      return val
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    }
+    if (val is Map) {
+      return [Map<String, dynamic>.from(val)];
+    }
+    return const [];
+  }
+
   int get productsSafe =>
       (globalSummary['products_safe'] as num?)?.toInt() ?? 0;
+
+  List<String> get recommendationHighlights => _extractStringList([
+    raw['recommendations_from_api'],
+    raw['recommendations'],
+    raw['action_plan'],
+  ]);
 
   // ─── Safe & unverified ingredients ────────────────────────────────────────
   List<String> get safeIngredients {
@@ -415,7 +480,9 @@ class CumulativeSummary {
       if ((productName ?? '').isNotEmpty &&
           (risk ?? '').isNotEmpty &&
           (recommendation ?? '').isNotEmpty) {
-        warnings.add('$productName: ${risk!.sentenceCase}, ${recommendation!.toLowerCase()}');
+        warnings.add(
+          '$productName: ${risk!.sentenceCase}, ${recommendation!.toLowerCase()}',
+        );
       }
     }
 
@@ -428,12 +495,12 @@ class CumulativeSummary {
       return value.trim();
     }
     if (productsToAvoid > 0) {
-      return 'Plusieurs produits méritent d\'être évités selon votre profil.';
+      return 'Several products should be avoided based on your profile.';
     }
     if (productsToReduce > 0) {
-      return 'Certains produits sont à réduire pour limiter les risques cumulés.';
+      return 'Some products should be reduced to limit cumulative risk.';
     }
-    return 'Votre vue cumulative reste globalement stable pour le moment.';
+    return 'Your cumulative view is currently stable overall.';
   }
 
   int get productsToReduce =>
@@ -463,7 +530,8 @@ class CumulativeSummary {
     final avoid = productsToAvoid.clamp(0, total);
     final reduce = productsToReduce.clamp(0, total);
     // Base: safe/total weighted, penalized by avoid and reduce
-    final raw = ((safe / total) * 100) -
+    final raw =
+        ((safe / total) * 100) -
         ((avoid / total) * 40) -
         ((reduce / total) * 20);
     return raw.round().clamp(5, 98);
@@ -544,24 +612,27 @@ class AlternativeSuggestion {
 
   factory AlternativeSuggestion.fromMap(Map<String, dynamic> json) {
     return AlternativeSuggestion(
-      title: (json['title'] ??
-              json['name'] ??
-              json['product'] ??
-              json['product_name'] ??
-              'Alternative')
-          .toString(),
-      subtitle: (json['brand'] ??
-              json['source'] ??
-              json['merchant'] ??
-              json['category'] ??
-              '')
-          .toString(),
-      reason: (json['reason'] ??
-              json['why'] ??
-              json['summary'] ??
-              json['description'] ??
-              'Alternative suggeree par le moteur de recherche.')
-          .toString(),
+      title:
+          (json['title'] ??
+                  json['name'] ??
+                  json['product'] ??
+                  json['product_name'] ??
+                  'Alternative')
+              .toString(),
+      subtitle:
+          (json['brand'] ??
+                  json['source'] ??
+                  json['merchant'] ??
+                  json['category'] ??
+                  '')
+              .toString(),
+      reason:
+          (json['reason'] ??
+                  json['why'] ??
+                  json['summary'] ??
+                  json['description'] ??
+                  'Alternative suggested by the search engine.')
+              .toString(),
       price: json['price']?.toString(),
       imageUrl: json['image']?.toString() ?? json['image_url']?.toString(),
       shopUrl: json['url']?.toString() ?? json['link']?.toString(),
@@ -576,7 +647,7 @@ class AlternativeSuggestion {
       return AlternativeSuggestion(
         title: value.trim(),
         subtitle: '',
-        reason: 'Suggestion retournee par le backend.',
+        reason: 'Suggestion returned by the backend.',
       );
     }
     return null;
@@ -683,7 +754,7 @@ class AnalyzedProduct {
   factory AnalyzedProduct.fromJson(Map<String, dynamic> json) {
     return AnalyzedProduct(
       productId: (json['product_id'] ?? '') as String,
-      name: (json['name'] ?? json['label'] ?? 'Produit') as String,
+      name: (json['name'] ?? json['label'] ?? 'Product') as String,
       brand: (json['brand'] ?? '') as String,
       category: (json['category'] ?? '') as String,
       ingredients: (json['ingredients'] as List<dynamic>? ?? const [])
@@ -765,12 +836,13 @@ class ScanReportRecord {
   factory ScanReportRecord.fromJson(Map<String, dynamic> json) {
     return ScanReportRecord(
       id: (json['id'] ?? '') as String,
-      title: (json['title'] ?? 'Rapport de scan') as String,
+      title: (json['title'] ?? 'Scan report') as String,
       results: (json['results'] as List<dynamic>? ?? const [])
           .whereType<Map>()
           .map((item) => Map<String, dynamic>.from(item))
           .toList(),
-      createdAt: DateTime.tryParse((json['created_at'] ?? '').toString()) ??
+      createdAt:
+          DateTime.tryParse((json['created_at'] ?? '').toString()) ??
           DateTime.now(),
       sourceImagePath: json['source_image_path']?.toString(),
     );
@@ -872,7 +944,7 @@ List<String> _extractStringList(Iterable<dynamic> values) {
           return;
         }
       }
-      
+
       // If no standard keys found, try to extract first non-empty value
       for (final entry in map.entries) {
         final text = entry.value?.toString().trim();
@@ -881,7 +953,7 @@ List<String> _extractStringList(Iterable<dynamic> values) {
           return;
         }
       }
-      
+
       // Last resort: join all values
       final joined = map.values
           .map((entry) => entry.toString().trim())

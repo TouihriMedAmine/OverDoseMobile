@@ -208,7 +208,7 @@ class ApiClient {
       'cosmetic' => ProductCategory.cosmetic,
       _ => ProductCategory.unknown,
     };
-    final name = (analysis['name'] ?? source['name'] ?? 'Produit analysé')
+    final name = (analysis['name'] ?? source['name'] ?? 'Analyzed product')
         .toString();
     final brand = (analysis['brand'] ?? source['brand'] ?? '').toString();
     final barcode = (analysis['barcode'] ?? source['barcode'] ?? '').toString();
